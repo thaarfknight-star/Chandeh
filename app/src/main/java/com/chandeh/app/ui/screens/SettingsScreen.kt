@@ -37,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -183,7 +184,11 @@ private fun ThemeCard(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(theme.accent)
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(theme.accent, theme.accent2)
+                        )
+                    )
             )
             if (selected) {
                 Box(

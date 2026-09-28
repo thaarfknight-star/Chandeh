@@ -14,58 +14,65 @@ import androidx.compose.ui.unit.sp
 val ProfitGreen = Color(0xFF34D399)
 val LossRed = Color(0xFFF87171)
 
-/** یک تم رنگی اپ: لهجه + گرادیان کارت ویژه */
+/** یک تم رنگی اپ: دو لهجه‌ی ترکیبی + گرادیان کارت ویژه */
 data class AppTheme(
     val id: String,
     val nameFa: String,
     val accent: Color,
+    val accent2: Color,
     val heroTop: Color,
     val heroBottom: Color
 )
 
-/** شش تم رنگی */
+/** شش تم ترکیب‌رنگی */
 val AppThemes = listOf(
     AppTheme(
-        id = "gold",
-        nameFa = "طلایی",
-        accent = Color(0xFFF0B429),
-        heroTop = Color(0xFF2B2111),
-        heroBottom = Color(0xFF171A2E)
+        id = "aurora",
+        nameFa = "شفق قطبی",
+        accent = Color(0xFF2DD4BF),
+        accent2 = Color(0xFFA78BFA),
+        heroTop = Color(0xFF0B2E2A),
+        heroBottom = Color(0xFF1E1B3D)
     ),
     AppTheme(
-        id = "emerald",
-        nameFa = "زمردی",
-        accent = Color(0xFF34D399),
-        heroTop = Color(0xFF0B2E22),
-        heroBottom = Color(0xFF101A2E)
-    ),
-    AppTheme(
-        id = "ocean",
-        nameFa = "اقیانوسی",
-        accent = Color(0xFF38BDF8),
-        heroTop = Color(0xFF0B2740),
-        heroBottom = Color(0xFF101A2E)
-    ),
-    AppTheme(
-        id = "violet",
-        nameFa = "بنفش",
-        accent = Color(0xFFA78BFA),
-        heroTop = Color(0xFF241545),
-        heroBottom = Color(0xFF141A2E)
-    ),
-    AppTheme(
-        id = "sunset",
-        nameFa = "غروب",
+        id = "volcano",
+        nameFa = "آتشفشان",
         accent = Color(0xFFFB923C),
+        accent2 = Color(0xFFF43F5E),
         heroTop = Color(0xFF3A1E0B),
-        heroBottom = Color(0xFF1A142E)
+        heroBottom = Color(0xFF3A0F1E)
     ),
     AppTheme(
-        id = "rose",
-        nameFa = "رز",
-        accent = Color(0xFFF472B6),
-        heroTop = Color(0xFF3A1025),
-        heroBottom = Color(0xFF1A142E)
+        id = "galaxy",
+        nameFa = "کهکشان",
+        accent = Color(0xFF818CF8),
+        accent2 = Color(0xFFF472B6),
+        heroTop = Color(0xFF1A1B3D),
+        heroBottom = Color(0xFF2E1030)
+    ),
+    AppTheme(
+        id = "beach",
+        nameFa = "ساحل",
+        accent = Color(0xFF38BDF8),
+        accent2 = Color(0xFFFBBF24),
+        heroTop = Color(0xFF0B2740),
+        heroBottom = Color(0xFF2E2410)
+    ),
+    AppTheme(
+        id = "jungle",
+        nameFa = "جنگل",
+        accent = Color(0xFF34D399),
+        accent2 = Color(0xFFA3E635),
+        heroTop = Color(0xFF0B2E1E),
+        heroBottom = Color(0xFF232E0B)
+    ),
+    AppTheme(
+        id = "neon",
+        nameFa = "نئون",
+        accent = Color(0xFF22D3EE),
+        accent2 = Color(0xFFE879F9),
+        heroTop = Color(0xFF0A2E38),
+        heroBottom = Color(0xFF2E1040)
     )
 )
 

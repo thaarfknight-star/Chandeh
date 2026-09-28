@@ -196,7 +196,7 @@ fun HeroCard(item: PriceItem) {
                         modifier = Modifier
                             .size(8.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(MaterialTheme.colorScheme.primary)
+                            .background(LocalAppTheme.current.accent2)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
@@ -252,7 +252,14 @@ fun CategoryHeader(title: String) {
             modifier = Modifier
                 .size(width = 3.dp, height = 18.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(MaterialTheme.colorScheme.primary)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            LocalAppTheme.current.accent,
+                            LocalAppTheme.current.accent2
+                        )
+                    )
+                )
         )
         Spacer(Modifier.width(8.dp))
         Text(
