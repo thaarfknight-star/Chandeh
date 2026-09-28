@@ -58,6 +58,7 @@ fun PriceListScreen(
     items: List<PriceItem>,
     isLoading: Boolean,
     error: String?,
+    lastFetchAt: String?,
     onRefresh: () -> Unit
 ) {
     Scaffold(
@@ -73,6 +74,13 @@ fun PriceListScreen(
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.secondary
                         )
+                        if (lastFetchAt != null) {
+                            Text(
+                                "آخرین دریافت: $lastFetchAt",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 },
                 actions = {

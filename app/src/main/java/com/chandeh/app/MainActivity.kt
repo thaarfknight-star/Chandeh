@@ -134,6 +134,7 @@ fun MainScreen(
                     items = state.items,
                     isLoading = state.isLoading,
                     error = state.error,
+                    lastFetchAt = state.lastFetchAt,
                     onRefresh = vm::refresh
                 )
                 1 -> ConverterScreen(items = state.items)

@@ -49,7 +49,9 @@ class PriceWidget : GlanceAppWidget() {
         val prefs = context.getSharedPreferences("nerkhcheck_prefs", Context.MODE_PRIVATE)
         val theme = appThemeById(prefs.getString("theme_id", null))
         val items = runCatching { PriceRepository().fetchPrices().getOrNull() }.getOrNull()
-        provideContent { WidgetContent(theme, items) }
+        val sdf = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+        val fetchedAt = sdf.format(java.util.Date()).toFaDigits()
+        provideContent { WidgetContent(theme, items, fetchedAt) }
     }
 }
 
@@ -71,7 +73,7 @@ class RefreshWidgetAction : ActionCallback {
 private val WidgetMuted = Color(0xFF8B93A7)
 
 @Composable
-private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?) {
+private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?, fetchedAt: String) {
     val dollar = items?.find { it.code == "price_dollar_rl" }
     val gold18 = items?.find { it.code == "geram18" }
     val sekee = items?.find { it.code == "sekee" }
@@ -84,13 +86,13 @@ private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?) {
             .clickable(actionStartActivity<MainActivity>()),
         verticalAlignment = Alignment.Top
     ) {
-        // سربرگ: تازه‌سازی | NerkhCheck
+        // سربرگ: تازه‌سازی + ساعت دریافت | NerkhCheck
         Row(
             modifier = GlanceModifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "⟳ تازه‌سازی",
+                text = "⟳ $fetchedAt",
                 modifier = GlanceModifier.clickable(actionRunCallback<RefreshWidgetAction>()),
                 style = TextStyle(color = ColorProvider(theme.accent2), fontSize = 12.sp)
             )

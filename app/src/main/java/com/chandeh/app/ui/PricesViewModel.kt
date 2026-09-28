@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chandeh.app.data.PriceItem
 import com.chandeh.app.data.PriceRepository
+import com.chandeh.app.util.toFaDigits
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,7 +13,9 @@ import kotlinx.coroutines.launch
 data class PricesUiState(
     val items: List<PriceItem> = emptyList(),
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    /** ساعت آخرین دریافت موفق توسط خود برنامه (به‌روزرسانی هر ۶۰ ثانیه) */
+    val lastFetchAt: String? = null
 )
 
 /** فاصله‌ی به‌روزرسانی خودکار داخل برنامه (میلی‌ثانیه) */
@@ -37,12 +40,16 @@ class PricesViewModel(
         }
     }
 
-    /** به‌روزرسانی خودکار و بی‌صدا — بدون نمایش لودینگ */
+    /** به‌روزرسانی خودکار و بی‌صدا — بدون نمایش لودینگ؛ هیچ‌وقت نمی‌میرد */
     private fun startAutoRefresh() {
         viewModelScope.launch {
             while (true) {
                 delay(AUTO_REFRESH_MS)
-                fetchAndPublish()
+                try {
+                    fetchAndPublish()
+                } catch (e: Exception) {
+                    // خطای غیرمنتظره حلقه را نکشد؛ ۶۰ ثانیه بعد دوباره تلاش می‌شود
+                }
             }
         }
     }
@@ -50,7 +57,11 @@ class PricesViewModel(
     private suspend fun fetchAndPublish() {
         repo.fetchPrices()
             .onSuccess { items ->
-                _state.value = PricesUiState(items = items, isLoading = false)
+                _state.value = PricesUiState(
+                    items = items,
+                    isLoading = false,
+                    lastFetchAt = nowFaTime()
+                )
             }
             .onFailure { e ->
                 _state.value = _state.value.copy(
@@ -58,5 +69,10 @@ class PricesViewModel(
                     error = e.message ?: "خطا در دریافت قیمت‌ها"
                 )
             }
+    }
+
+    private fun nowFaTime(): String {
+        val sdf = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+        return sdf.format(java.util.Date()).toFaDigits()
     }
 }
