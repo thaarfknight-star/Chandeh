@@ -113,7 +113,8 @@ private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?) {
                     modifier = GlanceModifier
                         .width(8.dp)
                         .height(8.dp)
-                        .background(theme.accent2)
+                        .background(theme.accent2),
+                    content = {}
                 )
                 Spacer(GlanceModifier.width(8.dp))
                 Text(
@@ -170,7 +171,8 @@ private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?) {
                 modifier = GlanceModifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.12f))
+                    .background(Color.White.copy(alpha = 0.12f)),
+                content = {}
             )
             Spacer(GlanceModifier.height(10.dp))
             // طلا و سکه
