@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.nerkhrooz.app"
+    namespace = "com.chandeh.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.nerkhrooz.app"
+        applicationId = "com.chandeh.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

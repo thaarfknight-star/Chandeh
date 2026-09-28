@@ -1,4 +1,4 @@
-package com.nerkhrooz.app.data
+package com.chandeh.app.data
 
 class PriceRepository(
     private val service: TgjuService = TgjuService.create()

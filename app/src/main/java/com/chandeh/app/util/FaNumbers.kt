@@ -1,4 +1,4 @@
-package com.nerkhrooz.app.util
+package com.chandeh.app.util
 
 val FA_DIGITS = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
 

@@ -1,4 +1,4 @@
-package com.nerkhrooz.app.data
+package com.chandeh.app.data
 
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
