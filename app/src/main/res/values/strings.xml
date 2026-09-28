@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">چه قیمت؟!</string>
+    <string name="app_name">NerkhCheck</string>
+    <string name="widget_label">نرخ‌ها</string>
+    <string name="widget_desc">قیمت لحظه‌ای دلار، طلا و سکه</string>
 </resources>

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,20 +27,35 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chandeh.app.data.Category
 import com.chandeh.app.data.PriceItem
 import com.chandeh.app.util.toFaDigits
 import com.chandeh.app.util.toFaSmart
 
+private val TomanItem = PriceItem(
+    code = "toman_ir",
+    titleFa = "تومان ایران",
+    category = Category.CURRENCY,
+    priceToman = 1L,
+    changeToman = 0L,
+    changePercent = 0.0,
+    updatedAt = ""
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConverterScreen(items: List<PriceItem>) {
+    // «تومان ایران» همیشه در دسترس است، حتی قبل از بارگذاری قیمت‌ها
+    val allItems = remember(items) { listOf(TomanItem) + items }
     var amountText by remember { mutableStateOf("1") }
-    var fromCode by remember(items) { mutableStateOf(items.firstOrNull()?.code) }
-    var toCode by remember(items) { mutableStateOf(items.getOrNull(1)?.code) }
+    var fromCode by remember(allItems) {
+        mutableStateOf(allItems.find { it.code == "price_dollar_rl" }?.code)
+    }
+    var toCode by remember(allItems) { mutableStateOf(TomanItem.code) }
 
     val amount = amountText.toDoubleOrNull() ?: 0.0
-    val from = items.find { it.code == fromCode }
-    val to = items.find { it.code == toCode }
+    val from = allItems.find { it.code == fromCode }
+    val to = allItems.find { it.code == toCode }
     val result: Double? =
         if (from != null && to != null && to.priceToman > 0)
             amount * from.priceToman.toDouble() / to.priceToman.toDouble()
@@ -48,6 +64,7 @@ fun ConverterScreen(items: List<PriceItem>) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -63,13 +80,13 @@ fun ConverterScreen(items: List<PriceItem>) {
 
         CurrencyPicker(
             label = "از",
-            items = items,
+            items = allItems,
             selectedCode = fromCode,
             onSelect = { fromCode = it }
         )
         CurrencyPicker(
             label = "به",
-            items = items,
+            items = allItems,
             selectedCode = toCode,
             onSelect = { toCode = it }
         )

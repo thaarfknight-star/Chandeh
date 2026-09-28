@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chandeh.app.data.Category
 import com.chandeh.app.data.PriceItem
-import com.chandeh.app.ui.theme.GoldAccent
+import com.chandeh.app.ui.theme.LocalAppTheme
 import com.chandeh.app.ui.theme.LossRed
 import com.chandeh.app.ui.theme.ProfitGreen
 import com.chandeh.app.util.toFaDigits
@@ -60,11 +61,13 @@ fun PriceListScreen(
     onRefresh: () -> Unit
 ) {
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("چه قیمت؟!", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+                        Text("NerkhCheck", fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
                         Text(
                             "قیمت لحظه‌ای ارز، طلا و سکه",
                             fontSize = 12.sp,
@@ -95,7 +98,7 @@ fun PriceListScreen(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator(color = GoldAccent)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(12.dp))
                         Text(
                             "در حال دریافت قیمت‌ها...",
@@ -155,7 +158,7 @@ fun PriceListScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .align(Alignment.TopCenter),
-                            color = GoldAccent
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -180,8 +183,8 @@ fun HeroCard(item: PriceItem) {
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF2B2111),
-                            Color(0xFF171A2E)
+                            LocalAppTheme.current.heroTop,
+                            LocalAppTheme.current.heroBottom
                         )
                     )
                 )
@@ -193,13 +196,13 @@ fun HeroCard(item: PriceItem) {
                         modifier = Modifier
                             .size(8.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(GoldAccent)
+                            .background(MaterialTheme.colorScheme.primary)
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
                         "${item.titleFa} • بازار آزاد",
                         fontSize = 13.sp,
-                        color = GoldAccent,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -249,7 +252,7 @@ fun CategoryHeader(title: String) {
             modifier = Modifier
                 .size(width = 3.dp, height = 18.dp)
                 .clip(RoundedCornerShape(2.dp))
-                .background(GoldAccent)
+                .background(MaterialTheme.colorScheme.primary)
         )
         Spacer(Modifier.width(8.dp))
         Text(
