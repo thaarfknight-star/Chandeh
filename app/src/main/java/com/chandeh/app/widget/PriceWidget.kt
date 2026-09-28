@@ -107,16 +107,12 @@ private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?) {
         Spacer(GlanceModifier.height(12.dp))
 
         if (dollar != null) {
-            // عنوان دلار
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = GlanceModifier
-                        .width(8.dp)
-                        .height(8.dp)
-                        .background(theme.accent2),
-                    content = {}
-                )
-                Spacer(GlanceModifier.width(8.dp))
+            // عنوان دلار (راست‌چین مثل برنامه)
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
                     text = "دلار آمریکا • بازار آزاد",
                     style = TextStyle(
@@ -125,10 +121,28 @@ private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?) {
                         fontWeight = FontWeight.Medium
                     )
                 )
+                Spacer(GlanceModifier.width(8.dp))
+                Box(
+                    modifier = GlanceModifier
+                        .width(8.dp)
+                        .height(8.dp)
+                        .background(theme.accent2),
+                    content = {}
+                )
             }
             Spacer(GlanceModifier.height(8.dp))
-            // قیمت بزرگ
-            Row(verticalAlignment = Alignment.Bottom) {
+            // قیمت بزرگ (راست‌چین مثل برنامه)
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.End,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                Text(
+                    text = "تومان",
+                    modifier = GlanceModifier.padding(bottom = 5.dp),
+                    style = TextStyle(color = ColorProvider(WidgetMuted), fontSize = 14.sp)
+                )
+                Spacer(GlanceModifier.width(6.dp))
                 Text(
                     text = dollar.priceToman.toFaToman(),
                     style = TextStyle(
@@ -137,16 +151,21 @@ private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?) {
                         fontWeight = FontWeight.Bold
                     )
                 )
-                Spacer(GlanceModifier.width(6.dp))
-                Text(
-                    text = "تومان",
-                    modifier = GlanceModifier.padding(bottom = 5.dp),
-                    style = TextStyle(color = ColorProvider(WidgetMuted), fontSize = 14.sp)
-                )
             }
             Spacer(GlanceModifier.height(6.dp))
-            // تغییر روزانه + ساعت
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // تغییر روزانه + ساعت (راست‌چین مثل برنامه)
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (dollar.updatedAt.isNotBlank()) {
+                    Text(
+                        text = "به‌روزرسانی ${dollar.updatedAt.toFaDigits()}",
+                        style = TextStyle(color = ColorProvider(WidgetMuted), fontSize = 12.sp)
+                    )
+                    Spacer(GlanceModifier.width(8.dp))
+                }
                 val chg = dollar.changePercent
                 val up = chg >= 0
                 Text(
@@ -157,13 +176,6 @@ private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?) {
                         fontWeight = FontWeight.Bold
                     )
                 )
-                Spacer(GlanceModifier.width(8.dp))
-                if (dollar.updatedAt.isNotBlank()) {
-                    Text(
-                        text = "به‌روزرسانی ${dollar.updatedAt.toFaDigits()}",
-                        style = TextStyle(color = ColorProvider(WidgetMuted), fontSize = 12.sp)
-                    )
-                }
             }
             Spacer(GlanceModifier.height(10.dp))
             // جداکننده
