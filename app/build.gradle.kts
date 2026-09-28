@@ -14,7 +14,6 @@ android {
         targetSdk = 34
         versionCode = 2
         versionName = "1.1"
-        archivesBaseName = "NerkhCheck"
     }
 
     buildTypes {
@@ -36,6 +35,10 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+base {
+    archivesName.set("NerkhCheck")
 }
 
 dependencies {
