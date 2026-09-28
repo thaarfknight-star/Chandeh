@@ -26,9 +26,10 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
+          mv app/build/outputs/apk/debug/NerkhCheck-debug.apk app/build/outputs/apk/debug/NerkhCheck.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: NerkhCheck-debug-apk
-          path: app/build/outputs/apk/debug/NerkhCheck-debug.apk
+          path: app/build/outputs/apk/debug/NerkhCheck.apk
