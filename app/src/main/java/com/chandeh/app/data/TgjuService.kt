@@ -37,6 +37,9 @@ interface TgjuService {
                     val req = chain.request().newBuilder()
                         .header("User-Agent", UA)
                         .header("Accept-Language", "fa-IR,fa;q=0.9")
+                        // جلوگیری از کش میانی: همیشه تازه‌ترین صفحه گرفته شود
+                        .header("Cache-Control", "no-cache")
+                        .header("Pragma", "no-cache")
                         .build()
                     chain.proceed(req)
                 }

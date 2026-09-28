@@ -7,9 +7,10 @@ class PriceRepository(
     private val service: TgjuService = TgjuService.create()
 ) {
     suspend fun fetchPrices(): Result<List<PriceItem>> = runCatching {
-        // منبع اصلی: صفحه‌ی اصلی TGJU
+        // منبع اصلی: صفحه‌ی اصلی TGJU (+ پارامتر ضدکش تا همیشه تازه باشد)
         val homepageError = try {
-            val html = service.fetch(TgjuService.HOMEPAGE_URL).string()
+            val url = TgjuService.HOMEPAGE_URL + "?_=" + System.currentTimeMillis()
+            val html = service.fetch(url).string()
             return@runCatching parseHomepage(html)
         } catch (e: Exception) {
             e
