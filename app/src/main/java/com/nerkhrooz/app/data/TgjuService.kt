@@ -1,4 +1,4 @@
-package com.chandroid.app.data
+package com.nerkhrooz.app.data
 
 import okhttp3.OkHttpClient
 import okhttp3.ResponseBody

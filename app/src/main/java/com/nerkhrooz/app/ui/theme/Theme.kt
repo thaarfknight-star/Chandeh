@@ -1,4 +1,4 @@
-package com.chandroid.app.ui.theme
+package com.nerkhrooz.app.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -24,7 +24,7 @@ val ProfitGreen = Color(0xFF16A34A)
 val LossRed = Color(0xFFDC2626)
 
 @Composable
-fun ChandroidTheme(content: @Composable () -> Unit) {
+fun NerkhRoozTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = DarkColors,
         typography = Typography(

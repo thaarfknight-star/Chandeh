@@ -1,4 +1,4 @@
-# چندروید (Chandroid)
+# نرخ‌روز (NerkhRooz)
 
 اپلیکیشن اندرویدی قیمت لحظه‌ای دلار، ارز، سکه و طلا — مشابه اپ **Chand** نسخه‌ی iOS
 (https://apps.apple.com/us/app/chand/id1524200188)، ولی فارسی و راست‌چین.
@@ -30,12 +30,12 @@ http://platform.tgju.org/fa/api/webservice-snippet/?token=webservice&items=...&o
 
 ### با GitHub Actions
 هر پوش به شاخه‌ی `main` به‌صورت خودکار APK دیباگ می‌سازد؛
-فایل را از تب Actions همان ران، بخش Artifacts با نام **Chandroid-debug-apk** دانلود کنید.
+فایل را از تب Actions همان ران، بخش Artifacts با نام **NerkhRooz-debug-apk** دانلود کنید.
 
 ## ساختار پروژه
 
 ```
-app/src/main/java/com/chandroid/app/
+app/src/main/java/com/nerkhrooz/app/
 ├── MainActivity.kt            # اکتیویتی اصلی + ناوبری پایین (قیمت‌ها / تبدیل)
 ├── data/
 │   ├── Symbols.kt             # لیست نمادها و کدهای TGJU

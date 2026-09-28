@@ -1,4 +1,4 @@
-package com.chandroid.app
+package com.nerkhrooz.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -24,10 +24,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.chandroid.app.ui.PricesViewModel
-import com.chandroid.app.ui.screens.ConverterScreen
-import com.chandroid.app.ui.screens.PriceListScreen
-import com.chandroid.app.ui.theme.ChandroidTheme
+import com.nerkhrooz.app.ui.PricesViewModel
+import com.nerkhrooz.app.ui.screens.ConverterScreen
+import com.nerkhrooz.app.ui.screens.PriceListScreen
+import com.nerkhrooz.app.ui.theme.NerkhRoozTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ChandroidTheme {
+            NerkhRoozTheme {
                 // کل رابط راست‌چین و فارسی
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     MainScreen(vm)

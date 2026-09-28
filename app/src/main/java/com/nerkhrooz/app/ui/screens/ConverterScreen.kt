@@ -1,4 +1,4 @@
-package com.chandroid.app.ui.screens
+package com.nerkhrooz.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -26,9 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chandroid.app.data.PriceItem
-import com.chandroid.app.util.toFaDigits
-import com.chandroid.app.util.toFaSmart
+import com.nerkhrooz.app.data.PriceItem
+import com.nerkhrooz.app.util.toFaDigits
+import com.nerkhrooz.app.util.toFaSmart
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

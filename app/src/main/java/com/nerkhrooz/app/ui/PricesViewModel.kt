@@ -1,9 +1,9 @@
-package com.chandroid.app.ui
+package com.nerkhrooz.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chandroid.app.data.PriceItem
-import com.chandroid.app.data.PriceRepository
+import com.nerkhrooz.app.data.PriceItem
+import com.nerkhrooz.app.data.PriceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

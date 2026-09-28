@@ -1,4 +1,4 @@
-package com.chandroid.app.data
+package com.nerkhrooz.app.data
 
 /** دسته‌بندی نمادها */
 enum class Category(val titleFa: String) {

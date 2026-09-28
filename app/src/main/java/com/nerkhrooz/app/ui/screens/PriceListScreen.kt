@@ -1,4 +1,4 @@
-package com.chandroid.app.ui.screens
+package com.nerkhrooz.app.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,12 +32,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.chandroid.app.data.Category
-import com.chandroid.app.data.PriceItem
-import com.chandroid.app.ui.theme.LossRed
-import com.chandroid.app.ui.theme.ProfitGreen
-import com.chandroid.app.util.toFaPercent
-import com.chandroid.app.util.toFaToman
+import com.nerkhrooz.app.data.Category
+import com.nerkhrooz.app.data.PriceItem
+import com.nerkhrooz.app.ui.theme.LossRed
+import com.nerkhrooz.app.ui.theme.ProfitGreen
+import com.nerkhrooz.app.util.toFaPercent
+import com.nerkhrooz.app.util.toFaToman
 import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +51,7 @@ fun PriceListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("چندروید", fontWeight = FontWeight.Bold) },
+                title = { Text("نرخ‌روز", fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = onRefresh) {
                         Icon(Icons.Filled.Refresh, contentDescription = "به‌روزرسانی")

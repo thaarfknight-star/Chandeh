@@ -1,4 +1,4 @@
-package com.chandroid.app.util
+package com.nerkhrooz.app.util
 
 val FA_DIGITS = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
 
