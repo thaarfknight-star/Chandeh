@@ -4,29 +4,28 @@ import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
-import retrofit2.http.Query
+import retrofit2.http.Url
 import java.util.concurrent.TimeUnit
 
 /**
- * وب‌سرویس عمومی TGJU — بدون نیاز به API Key.
- * پاسخ یک اسنیپت جاوااسکریپت است که جدول متنی قیمت‌ها را داخل innerHTML می‌گذارد؛
- * پارس آن در PriceRepository انجام می‌شود.
+ * دریافت قیمت‌ها از TGJU.
+ *
+ * منبع اصلی: صفحه‌ی اصلی www.tgju.org (ساخت‌یافته، داخل <tr data-market-nameslug="...">)
+ * منبع جایگزین: وب‌سرویس عمومی platform.tgju.org (گاهی 500 می‌دهد)
  */
 interface TgjuService {
 
-    @GET("fa/api/webservice-snippet/")
-    suspend fun getPrices(
-        @Query("token") token: String = "webservice",
-        @Query("items") items: String,
-        @Query("opts") opts: String = "diff,time",
-        @Query("placeholder") placeholder: String = "tgju-data"
-    ): ResponseBody
+    @GET
+    suspend fun fetch(@Url url: String): ResponseBody
 
     companion object {
-        // نسخه‌ی http تست‌شده و سالم است؛ در مانیفست usesCleartextTraffic=true
-        private const val BASE_URL = "http://platform.tgju.org/"
+        const val HOMEPAGE_URL = "https://www.tgju.org/"
+        const val SNIPPET_URL =
+            "http://platform.tgju.org/fa/api/webservice-snippet/?token=webservice&opts=diff,time&placeholder=tgju-data&items="
+
+        private const val UA =
+            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36"
 
         fun create(): TgjuService {
             val logging = HttpLoggingInterceptor().apply {
@@ -34,13 +33,19 @@ interface TgjuService {
             }
             val client = OkHttpClient.Builder()
                 .addInterceptor(logging)
+                .addInterceptor { chain ->
+                    val req = chain.request().newBuilder()
+                        .header("User-Agent", UA)
+                        .header("Accept-Language", "fa-IR,fa;q=0.9")
+                        .build()
+                    chain.proceed(req)
+                }
                 .connectTimeout(20, TimeUnit.SECONDS)
-                .readTimeout(20, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
                 .build()
             return Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl("https://www.tgju.org/")
                 .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
                 .build()
                 .create(TgjuService::class.java)
         }

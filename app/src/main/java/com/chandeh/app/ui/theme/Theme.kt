@@ -9,19 +9,22 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFF00E5A0),
-    onPrimary = Color(0xFF06281D),
-    secondary = Color(0xFF7C8DA6),
-    background = Color(0xFF0D1B2A),
-    surface = Color(0xFF16283D),
-    surfaceVariant = Color(0xFF1E3249),
-    onBackground = Color(0xFFF1F5F9),
-    onSurface = Color(0xFFF1F5F9),
-    error = Color(0xFFFF6B6B),
+    primary = Color(0xFFF0B429),
+    onPrimary = Color(0xFF231A05),
+    secondary = Color(0xFF8B93A7),
+    background = Color(0xFF0A0E1A),
+    surface = Color(0xFF131B30),
+    surfaceVariant = Color(0xFF1B2440),
+    onBackground = Color(0xFFF4F6FB),
+    onSurface = Color(0xFFF4F6FB),
+    error = Color(0xFFF87171),
 )
 
-val ProfitGreen = Color(0xFF16A34A)
-val LossRed = Color(0xFFDC2626)
+/** سبز/قرمز مخصوص اعداد روی پس‌زمینه‌ی تیره */
+val ProfitGreen = Color(0xFF34D399)
+val LossRed = Color(0xFFF87171)
+val GoldAccent = Color(0xFFF0B429)
+val GoldDim = Color(0xFF8A6D2B)
 
 @Composable
 fun ChandehTheme(content: @Composable () -> Unit) {

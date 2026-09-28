@@ -1,4 +1,4 @@
-# چنده؟ (Chandeh)
+# چه قیمت؟! (Chandeh)
 
 اپلیکیشن اندرویدی قیمت لحظه‌ای دلار، ارز، سکه و طلا — مشابه اپ **Chand** نسخه‌ی iOS
 (https://apps.apple.com/us/app/chand/id1524200188)، ولی فارسی و راست‌چین.
@@ -13,9 +13,11 @@
 
 ## منبع داده
 
-وب‌سرویس عمومی **TGJU** — بدون نیاز به ثبت‌نام و API Key:
+**TGJU** — بدون نیاز به ثبت‌نام و API Key. منبع اصلی صفحه‌ی اصلی `www.tgju.org`
+(پارس `<tr data-market-nameslug="...">`) و منبع جایگزین وب‌سرویس اسنیپت:
 
 ```
+https://www.tgju.org/
 http://platform.tgju.org/fa/api/webservice-snippet/?token=webservice&items=...&opts=diff,time
 ```
 
