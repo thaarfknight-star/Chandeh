@@ -41,6 +41,7 @@ import com.chandeh.app.ui.screens.SettingsScreen
 import com.chandeh.app.ui.theme.AppTheme
 import com.chandeh.app.ui.theme.NerkhCheckTheme
 import com.chandeh.app.ui.theme.appThemeById
+import com.chandeh.app.widget.WidgetUpdateWorker
 
 private const val PREFS = "nerkhcheck_prefs"
 private const val KEY_THEME = "theme_id"
@@ -51,6 +52,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // به‌روزرسانی دوره‌ای ویجت در پس‌زمینه
+        WidgetUpdateWorker.schedule(this)
         // تمام‌صفحه: محتوا زیر نوار وضعیت و ناوبری کشیده می‌شود
         enableEdgeToEdge()
         WindowCompat.getInsetsController(window, window.decorView).apply {
