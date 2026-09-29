@@ -1,43 +1,100 @@
 package com.chandeh.app.data
 
-import java.io.IOException
-import retrofit2.HttpException
+import android.content.SharedPreferences
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.supervisorScope
+import org.json.JSONObject
+import kotlin.math.abs
 
+/**
+ * دریافت قیمت‌ها از چند منبع به‌صورت موازی، با ادغام بر اساس اولویت:
+ *
+ *  ۱. BRS API (فقط اگر کلید در تنظیمات ثبت شده باشد) — سرور ایران، همه‌ی نمادها
+ *  ۲. صفحه‌ی اصلی TGJU — هاست خارجی (Cloudflare)، همه‌ی نمادها
+ *  ۳. tala.ir — سرور ایران، طلا و بخشی از سکه‌ها (بدون نیاز به کلید)
+ *  ۴. وب‌سرویس اسنیپت TGJU — هاست خارجی، همه‌ی نمادها
+ *
+ * برای هر نماد، اولین منبعی که آن را داشته باشد استفاده می‌شود؛ نمادهای
+ * بدون داده‌ی زنده از کش پر می‌شوند (isStale=true) تا اپ هیچ‌وقت خالی نماند.
+ */
 class PriceRepository(
-    private val service: TgjuService = TgjuService.create()
+    private val brsApiKey: String? = null,
+    prefs: SharedPreferences? = null
 ) {
+    private val cache: PriceCache? = prefs?.let { PriceCache(it) }
+
     suspend fun fetchPrices(): Result<List<PriceItem>> = runCatching {
-        // منبع اصلی: صفحه‌ی اصلی TGJU (+ پارامتر ضدکش تا همیشه تازه باشد)
-        val homepageError = try {
-            val url = TgjuService.HOMEPAGE_URL + "?_=" + System.currentTimeMillis()
-            val html = service.fetch(url).string()
-            return@runCatching parseHomepage(html)
-        } catch (e: Exception) {
-            e
+        val merged = LinkedHashMap<String, PriceItem>()
+        supervisorScope {
+            val jobs = mutableListOf<Deferred<Result<Map<String, PriceItem>>>>()
+            val key = brsApiKey?.trim().orEmpty()
+            if (key.isNotEmpty()) {
+                jobs += async {
+                    runCatching {
+                        parseBrs(HttpClient.get(BRS_API_URL + key)).associateBy { it.code }
+                    }
+                }
+            }
+            jobs += async {
+                runCatching {
+                    // پارامتر ضدکش تا همیشه تازه‌ترین صفحه گرفته شود
+                    val url = TgjuService.HOMEPAGE_URL + "?_=" + System.currentTimeMillis()
+                    parseHomepage(HttpClient.get(url)).associateBy { it.code }
+                }
+            }
+            jobs += async {
+                runCatching {
+                    // اعتبارسنجی در برابر کش: فید tala.ir گاهی مقادیر خراب می‌دهد
+                    val known = cache?.load().orEmpty()
+                    parseTala(HttpClient.get(TALA_PRICE_URL))
+                        .filter { talaPlausible(it, known) }
+                        .associateBy { it.code }
+                }
+            }
+            jobs += async {
+                runCatching {
+                    val itemsParam = SYMBOLS.joinToString(",") { it.code }
+                    parseSnippet(HttpClient.get(TgjuService.SNIPPET_URL + itemsParam))
+                        .associateBy { it.code }
+                }
+            }
+            for (r in jobs.awaitAll()) {
+                val m = r.getOrNull() ?: continue
+                for ((code, item) in m) merged.putIfAbsent(code, item)
+            }
         }
-        // منبع جایگزین: وب‌سرویس اسنیپت
-        try {
-            val itemsParam = SYMBOLS.joinToString(",") { it.code }
-            val body = service.fetch(TgjuService.SNIPPET_URL + itemsParam).string()
-            parseSnippet(body)
-        } catch (e2: Exception) {
-            throw friendlyError(e2, homepageError)
+
+        val cached = cache?.load().orEmpty()
+        if (merged.isNotEmpty()) cache?.save(merged.values.toList())
+
+        // ترتیب نهایی همیشه همان ترتیب SYMBOLS
+        val final = SYMBOLS.mapNotNull { def ->
+            merged[def.code] ?: cached[def.code]
         }
+        if (final.isEmpty()) throw allFailedError()
+        final
     }
 
-    /** خطای قابل‌فهم فارسی به‌جای «HTTP 500» */
-    private fun friendlyError(e: Throwable, first: Throwable?): Throwable {
-        val msg = when {
-            e is HttpException && e.code() >= 500 ->
-                "سرور قیمت‌ها موقتاً در دسترس نیست؛ چند دقیقه دیگر تلاش کنید"
-            first is HttpException && first.code() >= 500 ->
-                "سرور قیمت‌ها موقتاً در دسترس نیست؛ چند دقیقه دیگر تلاش کنید"
-            e is IOException || first is IOException ->
-                "اتصال اینترنت را بررسی کنید و دوباره تلاش کنید"
-            else -> "دریافت قیمت‌ها ممکن نشد؛ دوباره تلاش کنید"
-        }
-        return IllegalStateException(msg, e)
+    private fun allFailedError(): Throwable =
+        IllegalStateException("دریافت قیمت‌ها ممکن نشد؛ اتصال اینترنت را بررسی کنید و دوباره تلاش کنید")
+
+    /**
+     * تور ایمنی tala.ir: مقدار باید مثبت، داخل کرانه‌ی مطلق، و (اگر کشی از
+     * همین نماد هست) حداکثر ۵۰٪ با آخرین قیمت موفق اختلاف داشته باشد.
+     */
+    private fun talaPlausible(item: PriceItem, cached: Map<String, PriceItem>): Boolean {
+        if (item.priceToman <= 0) return false
+        val (lo, hi) = TALA_BOUNDS[item.code] ?: return true
+        if (item.priceToman !in lo..hi) return false
+        val c = cached[item.code]?.priceToman ?: return true
+        if (c <= 0) return true
+        return abs(item.priceToman - c).toDouble() / c <= 0.5
     }
+
+    // ------------------------------------------------------------------
+    // TGJU — صفحه‌ی اصلی
+    // ------------------------------------------------------------------
 
     /**
      * پارس صفحه‌ی اصلی tgju.org — هر سطر:
@@ -77,7 +134,7 @@ class PriceRepository(
                 category = def.category,
                 priceToman = priceRial / 10,
                 changeToman = sign * (changeRial / 10),
-                changePercent = sign * kotlin.math.abs(pct),
+                changePercent = sign * abs(pct),
                 updatedAt = time
             )
         }
@@ -85,6 +142,10 @@ class PriceRepository(
             throw IllegalStateException("پاسخ سرور ناقص بود")
         return items
     }
+
+    // ------------------------------------------------------------------
+    // TGJU — وب‌سرویس اسنیپت
+    // ------------------------------------------------------------------
 
     /**
      * پارس وب‌سرویس اسنیپت (جایگزین) — نمونه سطر:
@@ -101,7 +162,7 @@ class PriceRepository(
             val priceRial = m.groupValues[2].replace(",", "").toLong()
             val pct = m.groupValues[3].toDouble()
             val changeRial = m.groupValues[4].replace(",", "").toLong()
-            val signedPct = if (changeRial < 0) -kotlin.math.abs(pct) else kotlin.math.abs(pct)
+            val signedPct = if (changeRial < 0) -abs(pct) else abs(pct)
             PriceItem(
                 code = def.code,
                 titleFa = def.titleFa,
@@ -112,5 +173,161 @@ class PriceRepository(
                 updatedAt = m.groupValues[5].trim()
             )
         }
+    }
+
+    // ------------------------------------------------------------------
+    // tala.ir — سرور ایران (طلا و سکه)
+    // ------------------------------------------------------------------
+
+    /**
+     * پارس خروجی https://www.tala.ir/ajax/price — نمونه:
+     *   "gold_18k": {"v": "24,988,900", "d": "9,234 (0.04%)",
+     *                "jdate": "14:59 1405/07/07", ...}
+     *
+     * نکته‌های مهم (بررسی‌شده با داده‌ی واقعی):
+     *  - مقادیر v همین‌جا به تومان‌اند (تقسیم لازم نیست).
+     *  - گاهی علامت منفیِ تغییر روزانه به اولِ v چسبیده (مثل "-176,696,700")؛
+     *    مقدار واقعی قدرمطلق است.
+     *  - فید سکه‌ی امامی/بهار (sekke-jad/gad) خراب است (خود سایت هم «-» نشان
+     *    می‌دهد و مقدارش ~۳۰٪ با بازار اختلاف دارد)؛ پس نگاشت نمی‌شوند و
+     *    از TGJU یا کش می‌آیند.
+     */
+    fun parseTala(json: String): List<PriceItem> {
+        val root = JSONObject(json)
+        val defs = SYMBOLS.associateBy { it.code }
+        val out = mutableListOf<PriceItem>()
+        for ((talaKey, appCode) in TALA_CODE_MAP) {
+            val def = defs[appCode] ?: continue
+            val section = if (talaKey.startsWith("gold_")) "gold" else "sekke"
+            val obj = root.optJSONObject(section)?.optJSONObject(talaKey) ?: continue
+            val priceToman = obj.optString("v", "").replace(",", "")
+                .toLongOrNull()?.let { abs(it) } ?: continue
+            if (priceToman <= 0) continue
+            // d نمونه: "-100,000 (0.05%)"
+            val d = obj.optString("d", "")
+            val dm = Regex("""(-?[\d,]+)\s*\(([-\d.]+)%\)""").find(d)
+            val changeToman = dm?.groupValues?.get(1)?.replace(",", "")?.toLongOrNull() ?: 0L
+            val pct = dm?.groupValues?.get(2)?.toDoubleOrNull() ?: 0.0
+            val sign = if (changeToman < 0 || pct < 0) -1 else 1
+            val time = obj.optString("jdate", "").split(" ").firstOrNull().orEmpty()
+            out.add(
+                PriceItem(
+                    code = def.code,
+                    titleFa = def.titleFa,
+                    category = def.category,
+                    priceToman = priceToman,
+                    changeToman = changeToman,
+                    changePercent = sign * abs(pct),
+                    updatedAt = time
+                )
+            )
+        }
+        return out
+    }
+
+    // ------------------------------------------------------------------
+    // BRS API — سرور ایران (همه‌ی نمادها، نیازمند کلید)
+    // ------------------------------------------------------------------
+
+    /**
+     * پارس خروجی https://api.brsapi.ir/Market/Gold_Currency.php?key=...
+     * مبالغ همین‌جا به تومان‌اند (تبدیل لازم نیست).
+     */
+    fun parseBrs(json: String): List<PriceItem> {
+        val root = JSONObject(json)
+        if (!root.optBoolean("successful", true))
+            throw IllegalStateException(
+                root.optString("message_error", "خطا در وب‌سرویس BRS").ifEmpty { "خطا در وب‌سرویس BRS" }
+            )
+        val defs = SYMBOLS.associateBy { it.code }
+        val bySymbol = LinkedHashMap<String, JSONObject>()
+        for (arrName in listOf("gold", "currency")) {
+            val arr = root.optJSONArray(arrName) ?: continue
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                bySymbol.putIfAbsent(o.optString("symbol"), o)
+            }
+        }
+        if (bySymbol.isEmpty()) throw IllegalStateException("پاسخ BRS خالی بود")
+        return BRS_CODE_MAP.mapNotNull { (brsSym, appCode) ->
+            val o = bySymbol[brsSym] ?: return@mapNotNull null
+            val def = defs[appCode] ?: return@mapNotNull null
+            val price = o.optMoney("price").takeIf { it > 0 } ?: return@mapNotNull null
+            PriceItem(
+                code = def.code,
+                titleFa = def.titleFa,
+                category = def.category,
+                priceToman = price,
+                changeToman = o.optMoney("change_value"),
+                changePercent = o.optDoubleFlexible("change_percent"),
+                updatedAt = o.optString("time", "")
+            )
+        }
+    }
+
+    /** خواندن عدد که ممکن است Number یا رشته‌ی «1,234» باشد */
+    private fun JSONObject.optMoney(name: String): Long = when (val v = opt(name)) {
+        is Number -> v.toLong()
+        is String -> v.replace(",", "").toLongOrNull() ?: 0L
+        else -> 0L
+    }
+
+    private fun JSONObject.optDoubleFlexible(name: String): Double = when (val v = opt(name)) {
+        is Number -> v.toDouble()
+        is String -> v.replace(",", "").toDoubleOrNull() ?: 0.0
+        else -> 0.0
+    }
+
+    companion object {
+        /** سایت طلا (اتحادیه) — سرور ایران، بدون نیاز به کلید */
+        const val TALA_PRICE_URL = "https://www.tala.ir/ajax/price"
+
+        /** وب‌سرویس BRS — سرور ایران، نیازمند کلید رایگان */
+        const val BRS_API_URL = "https://api.brsapi.ir/Market/Gold_Currency.php?key="
+
+        /** نگاشت کلیدهای tala.ir به کد نمادهای برنامه.
+         *  سکه‌ی امامی/بهار عمداً نیست: فیدشان خراب است (خود tala.ir هم «-»
+         *  نشان می‌دهد) و مقدارشان ~۳۰٪ با بازار اختلاف دارد. */
+        private val TALA_CODE_MAP = mapOf(
+            "gold_18k" to "geram18",
+            "gold_24k" to "geram24",
+            "gold_bazartehran" to "mesghal",
+            "sekke-nim" to "nim",
+            "sekke-rob" to "rob",
+            "sekke-grm" to "gerami"
+        )
+
+        /** کرانه‌ی قابل‌قبول قیمت tala.ir به تومان — تور ایمنی در برابر
+         *  باگ‌های فیدشان (مثل چسبیدن علامت یا واحد اشتباه) */
+        private val TALA_BOUNDS = mapOf(
+            "geram18" to (5_000_000L to 120_000_000L),
+            "geram24" to (7_000_000L to 160_000_000L),
+            "mesghal" to (20_000_000L to 520_000_000L),
+            "nim" to (30_000_000L to 600_000_000L),
+            "rob" to (15_000_000L to 300_000_000L),
+            "gerami" to (8_000_000L to 180_000_000L)
+        )
+
+        /** نگاشت نمادهای BRS به کد نمادهای برنامه */
+        private val BRS_CODE_MAP = mapOf(
+            "USD" to "price_dollar_rl",
+            "EUR" to "price_eur",
+            "GBP" to "price_gbp",
+            "AED" to "price_aed",
+            "TRY" to "price_try",
+            "CHF" to "price_chf",
+            "CNY" to "price_cny",
+            "JPY" to "price_jpy",
+            "CAD" to "price_cad",
+            "AUD" to "price_aud",
+            "IR_GOLD_18K" to "geram18",
+            "IR_GOLD_24K" to "geram24",
+            "IR_GOLD_MELTED" to "mesghal",
+            "IR_COIN_EMAMI" to "sekee",
+            "IR_COIN_BAHAR" to "sekeb",
+            "IR_COIN_HALF" to "nim",
+            "IR_COIN_QUARTER" to "rob",
+            "IR_COIN_1G" to "gerami"
+        )
     }
 }

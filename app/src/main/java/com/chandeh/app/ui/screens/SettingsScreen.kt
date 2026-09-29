@@ -25,15 +25,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,7 +64,9 @@ private fun openUrl(ctx: Context, url: String) {
 @Composable
 fun SettingsScreen(
     theme: AppTheme,
-    onThemeChange: (AppTheme) -> Unit
+    onThemeChange: (AppTheme) -> Unit,
+    brsKey: String,
+    onBrsKeyChange: (String) -> Unit
 ) {
     val ctx = LocalContext.current
     Column(
@@ -72,6 +82,47 @@ fun SettingsScreen(
             fontWeight = FontWeight.ExtraBold,
             fontSize = 22.sp
         )
+
+        SettingsSection(title = "داده‌ها و اینترنت ملی", icon = Icons.Filled.CurrencyExchange) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "روی اینترنت ملی، قیمت طلا و سکه به‌صورت زنده دریافت می‌شود. برای قیمت لحظه‌ای دلار و ارزها هم، کلید رایگان BRS را وارد کنید؛ در غیر این صورت آخرین قیمت ذخیره‌شده نمایش داده می‌شود.",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                var draft by remember(brsKey) { mutableStateOf(brsKey) }
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    label = { Text("کلید BRS API (اختیاری)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { onBrsKeyChange(draft.trim()) }) {
+                        Text("ذخیره")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            openUrl(
+                                ctx,
+                                "https://brsapi.ir/tsetmc-exchange-free-bourse-api-key-request/"
+                            )
+                        }
+                    ) {
+                        Text("دریافت کلید رایگان")
+                    }
+                }
+                if (brsKey.isNotBlank()) {
+                    Text(
+                        "✓ کلید ذخیره شده و برای به‌روزرسانی بعدی استفاده می‌شود",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+        }
 
         SettingsSection(title = "تم رنگی", icon = Icons.Filled.Palette) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -105,8 +156,8 @@ fun SettingsScreen(
                 InfoRow(
                     icon = Icons.Filled.Code,
                     title = "گیت‌هاب",
-                    value = "thaarfknight-star/Chandeh",
-                    onClick = { openUrl(ctx, "https://github.com/thaarfknight-star/Chandeh") }
+                    value = "thaarfknight-star/NerkhCheck",
+                    onClick = { openUrl(ctx, "https://github.com/thaarfknight-star/NerkhCheck") }
                 )
                 InfoRow(
                     icon = Icons.Filled.Send,

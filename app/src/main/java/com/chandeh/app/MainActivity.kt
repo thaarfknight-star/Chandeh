@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.chandeh.app.data.Prefs
 import com.chandeh.app.ui.PricesViewModel
 import com.chandeh.app.ui.screens.ConverterScreen
 import com.chandeh.app.ui.screens.PriceListScreen
@@ -42,9 +43,6 @@ import com.chandeh.app.ui.theme.AppTheme
 import com.chandeh.app.ui.theme.NerkhCheckTheme
 import com.chandeh.app.ui.theme.appThemeById
 import com.chandeh.app.widget.WidgetUpdateWorker
-
-private const val PREFS = "nerkhcheck_prefs"
-private const val KEY_THEME = "theme_id"
 
 class MainActivity : ComponentActivity() {
 
@@ -61,9 +59,12 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightNavigationBars = false
         }
         setContent {
-            val prefs = remember { getSharedPreferences(PREFS, MODE_PRIVATE) }
+            val prefs = remember { getSharedPreferences(Prefs.NAME, MODE_PRIVATE) }
             var theme by remember {
-                mutableStateOf(appThemeById(prefs.getString(KEY_THEME, null)))
+                mutableStateOf(appThemeById(prefs.getString(Prefs.KEY_THEME, null)))
+            }
+            var brsKey by remember {
+                mutableStateOf(prefs.getString(Prefs.KEY_BRS_API, "").orEmpty())
             }
             NerkhCheckTheme(appTheme = theme) {
                 // کل رابط راست‌چین و فارسی
@@ -79,7 +80,13 @@ class MainActivity : ComponentActivity() {
                             theme = theme,
                             onThemeChange = {
                                 theme = it
-                                prefs.edit().putString(KEY_THEME, it.id).apply()
+                                prefs.edit().putString(Prefs.KEY_THEME, it.id).apply()
+                            },
+                            brsKey = brsKey,
+                            onBrsKeyChange = {
+                                brsKey = it
+                                prefs.edit().putString(Prefs.KEY_BRS_API, it).apply()
+                                vm.refresh()
                             }
                         )
                     }
@@ -93,7 +100,9 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(
     vm: PricesViewModel,
     theme: AppTheme,
-    onThemeChange: (AppTheme) -> Unit
+    onThemeChange: (AppTheme) -> Unit,
+    brsKey: String,
+    onBrsKeyChange: (String) -> Unit
 ) {
     val state by vm.state.collectAsStateWithLifecycle()
     var tab by remember { mutableStateOf(0) }
@@ -135,12 +144,15 @@ fun MainScreen(
                     isLoading = state.isLoading,
                     error = state.error,
                     lastFetchAt = state.lastFetchAt,
+                    hasStale = state.hasStale,
                     onRefresh = vm::refresh
                 )
                 1 -> ConverterScreen(items = state.items)
                 else -> SettingsScreen(
                     theme = theme,
-                    onThemeChange = onThemeChange
+                    onThemeChange = onThemeChange,
+                    brsKey = brsKey,
+                    onBrsKeyChange = onBrsKeyChange
                 )
             }
         }

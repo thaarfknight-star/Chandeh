@@ -59,6 +59,7 @@ fun PriceListScreen(
     isLoading: Boolean,
     error: String?,
     lastFetchAt: String?,
+    hasStale: Boolean,
     onRefresh: () -> Unit
 ) {
     Scaffold(
@@ -147,6 +148,33 @@ fun PriceListScreen(
                     ) {
                         if (dollar != null) {
                             item(key = "hero") { HeroCard(dollar) }
+                        }
+                        if (hasStale) {
+                            item(key = "stale_banner") {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                        )
+                                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Filled.SignalWifiOff,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "برخی قیمت‌ها به‌روز نشدند و از حافظه نمایش داده می‌شوند",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.secondary
+                                    )
+                                }
+                            }
                         }
                         Category.values().forEach { cat ->
                             val list = grouped[cat].orEmpty()
@@ -244,6 +272,14 @@ fun HeroCard(item: PriceItem) {
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }
+                    if (item.isStale) {
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "ذخیره‌شده",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
                 }
             }
         }
@@ -301,10 +337,17 @@ fun PriceRow(item: PriceItem) {
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp
                 )
-                if (item.updatedAt.isNotBlank()) {
+                val sub = buildString {
+                    if (item.updatedAt.isNotBlank()) append(item.updatedAt.toFaDigits())
+                    if (item.isStale) {
+                        if (isNotEmpty()) append(" • ")
+                        append("ذخیره‌شده")
+                    }
+                }
+                if (sub.isNotEmpty()) {
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        item.updatedAt.toFaDigits(),
+                        sub,
                         fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.secondary
                     )

@@ -31,6 +31,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.chandeh.app.MainActivity
+import com.chandeh.app.data.Prefs
 import com.chandeh.app.data.PriceItem
 import com.chandeh.app.data.PriceRepository
 import com.chandeh.app.ui.theme.AppTheme
@@ -46,12 +47,16 @@ import kotlin.math.abs
 class PriceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val prefs = context.getSharedPreferences("nerkhcheck_prefs", Context.MODE_PRIVATE)
-        val theme = appThemeById(prefs.getString("theme_id", null))
-        val items = runCatching { PriceRepository().fetchPrices().getOrNull() }.getOrNull()
+        val prefs = context.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
+        val theme = appThemeById(prefs.getString(Prefs.KEY_THEME, null))
+        val brsKey = prefs.getString(Prefs.KEY_BRS_API, null)
+        val items = runCatching {
+            PriceRepository(brsApiKey = brsKey, prefs = prefs).fetchPrices().getOrNull()
+        }.getOrNull()
         val sdf = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
         val fetchedAt = sdf.format(java.util.Date()).toFaDigits()
-        provideContent { WidgetContent(theme, items, fetchedAt) }
+        val hasStale = items?.any { it.isStale } == true
+        provideContent { WidgetContent(theme, items, fetchedAt, hasStale) }
     }
 }
 
@@ -73,7 +78,12 @@ class RefreshWidgetAction : ActionCallback {
 private val WidgetMuted = Color(0xFF8B93A7)
 
 @Composable
-private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?, fetchedAt: String) {
+private fun WidgetContent(
+    theme: AppTheme,
+    items: List<PriceItem>?,
+    fetchedAt: String,
+    hasStale: Boolean
+) {
     val dollar = items?.find { it.code == "price_dollar_rl" }
     val gold18 = items?.find { it.code == "geram18" }
     val sekee = items?.find { it.code == "sekee" }
@@ -92,7 +102,7 @@ private fun WidgetContent(theme: AppTheme, items: List<PriceItem>?, fetchedAt: S
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "⟳ $fetchedAt",
+                text = "⟳ $fetchedAt" + if (hasStale) " • ذخیره‌شده" else "",
                 modifier = GlanceModifier.clickable(actionRunCallback<RefreshWidgetAction>()),
                 style = TextStyle(color = ColorProvider(theme.accent2), fontSize = 12.sp)
             )

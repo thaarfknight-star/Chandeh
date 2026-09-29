@@ -42,7 +42,8 @@ val SYMBOLS = listOf(
     SymbolDef("gerami", "سکه گرمی", Category.COIN),
 )
 
-/** یک قلم قیمت — همه‌ی مبالغ به تومان */
+/** یک قلم قیمت — همه‌ی مبالغ به تومان.
+ *  isStale یعنی این قیمت زنده نیست و از حافظه‌ی (کش) برنامه آمده است. */
 data class PriceItem(
     val code: String,
     val titleFa: String,
@@ -50,5 +51,6 @@ data class PriceItem(
     val priceToman: Long,
     val changeToman: Long,
     val changePercent: Double,
-    val updatedAt: String
+    val updatedAt: String,
+    val isStale: Boolean = false
 )
