@@ -60,7 +60,19 @@ object ThemeStore {
                     val accent2 = parseColor(o.optString("accent2", "")) ?: continue
                     val heroTop = parseColor(o.optString("heroTop", "")) ?: continue
                     val heroBottom = parseColor(o.optString("heroBottom", "")) ?: continue
-                    add(AppTheme(id, nameFa, accent, accent2, heroTop, heroBottom))
+                    // پالت کامل از نسخه‌ی ۳ فایل آپدیت؛ اگر نباشد، پیش‌فرض تیره
+                    val background = parseColor(o.optString("background", ""))
+                        ?: Color(0xFF0A0E1A)
+                    val surface = parseColor(o.optString("surface", ""))
+                        ?: Color(0xFF131B30)
+                    val surfaceVariant = parseColor(o.optString("surfaceVariant", ""))
+                        ?: Color(0xFF1B2440)
+                    add(
+                        AppTheme(
+                            id, nameFa, accent, accent2, heroTop, heroBottom,
+                            background, surface, surfaceVariant
+                        )
+                    )
                 }
             }
         } catch (_: Exception) {

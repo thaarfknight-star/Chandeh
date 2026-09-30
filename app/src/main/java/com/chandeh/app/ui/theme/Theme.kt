@@ -14,14 +14,20 @@ import androidx.compose.ui.unit.sp
 val ProfitGreen = Color(0xFF34D399)
 val LossRed = Color(0xFFF87171)
 
-/** یک تم رنگی اپ: دو لهجه‌ی ترکیبی + گرادیان کارت ویژه */
+/**
+ * یک تم رنگی کامل اپ: لهجه‌ها + گرادیان کارت ویژه + کل پالت تیره‌ی برنامه.
+ * با عوض شدن تم، پس‌زمینه، سطح‌ها و کارت‌های همه‌ی صفحه‌ها عوض می‌شوند.
+ */
 data class AppTheme(
     val id: String,
     val nameFa: String,
     val accent: Color,
     val accent2: Color,
     val heroTop: Color,
-    val heroBottom: Color
+    val heroBottom: Color,
+    val background: Color,
+    val surface: Color,
+    val surfaceVariant: Color
 )
 
 /** دوازده تم ترکیب‌رنگی */
@@ -32,7 +38,10 @@ val AppThemes = listOf(
         accent = Color(0xFF2DD4BF),
         accent2 = Color(0xFFA78BFA),
         heroTop = Color(0xFF0B2E2A),
-        heroBottom = Color(0xFF1E1B3D)
+        heroBottom = Color(0xFF1E1B3D),
+        background = Color(0xFF090F0E),
+        surface = Color(0xFF101917),
+        surfaceVariant = Color(0xFF182723)
     ),
     AppTheme(
         id = "volcano",
@@ -40,7 +49,10 @@ val AppThemes = listOf(
         accent = Color(0xFFFB923C),
         accent2 = Color(0xFFF43F5E),
         heroTop = Color(0xFF3A1E0B),
-        heroBottom = Color(0xFF3A0F1E)
+        heroBottom = Color(0xFF3A0F1E),
+        background = Color(0xFF100B07),
+        surface = Color(0xFF1B130C),
+        surfaceVariant = Color(0xFF291C12)
     ),
     AppTheme(
         id = "galaxy",
@@ -48,7 +60,10 @@ val AppThemes = listOf(
         accent = Color(0xFF818CF8),
         accent2 = Color(0xFFF472B6),
         heroTop = Color(0xFF1A1B3D),
-        heroBottom = Color(0xFF2E1030)
+        heroBottom = Color(0xFF2E1030),
+        background = Color(0xFF0C0C15),
+        surface = Color(0xFF151527),
+        surfaceVariant = Color(0xFF20203A)
     ),
     AppTheme(
         id = "beach",
@@ -56,7 +71,10 @@ val AppThemes = listOf(
         accent = Color(0xFF38BDF8),
         accent2 = Color(0xFFFBBF24),
         heroTop = Color(0xFF0B2740),
-        heroBottom = Color(0xFF2E2410)
+        heroBottom = Color(0xFF2E2410),
+        background = Color(0xFF090E14),
+        surface = Color(0xFF101A26),
+        surfaceVariant = Color(0xFF182637)
     ),
     AppTheme(
         id = "jungle",
@@ -64,7 +82,10 @@ val AppThemes = listOf(
         accent = Color(0xFF34D399),
         accent2 = Color(0xFFA3E635),
         heroTop = Color(0xFF0B2E1E),
-        heroBottom = Color(0xFF232E0B)
+        heroBottom = Color(0xFF232E0B),
+        background = Color(0xFF090F0B),
+        surface = Color(0xFF101D14),
+        surfaceVariant = Color(0xFF182B1E)
     ),
     AppTheme(
         id = "neon",
@@ -72,7 +93,10 @@ val AppThemes = listOf(
         accent = Color(0xFF22D3EE),
         accent2 = Color(0xFFE879F9),
         heroTop = Color(0xFF0A2E38),
-        heroBottom = Color(0xFF2E1040)
+        heroBottom = Color(0xFF2E1040),
+        background = Color(0xFF090E13),
+        surface = Color(0xFF101B24),
+        surfaceVariant = Color(0xFF172834)
     ),
     AppTheme(
         id = "gold",
@@ -80,7 +104,10 @@ val AppThemes = listOf(
         accent = Color(0xFFFBBF24),
         accent2 = Color(0xFFD97706),
         heroTop = Color(0xFF2A1E08),
-        heroBottom = Color(0xFF1A1206)
+        heroBottom = Color(0xFF1A1206),
+        background = Color(0xFF100D07),
+        surface = Color(0xFF1C1710),
+        surfaceVariant = Color(0xFF2A2317)
     ),
     AppTheme(
         id = "ocean",
@@ -88,7 +115,10 @@ val AppThemes = listOf(
         accent = Color(0xFF3B82F6),
         accent2 = Color(0xFF06B6D4),
         heroTop = Color(0xFF0A1E3C),
-        heroBottom = Color(0xFF082A38)
+        heroBottom = Color(0xFF082A38),
+        background = Color(0xFF090D16),
+        surface = Color(0xFF0F1830),
+        surfaceVariant = Color(0xFF16233F)
     ),
     AppTheme(
         id = "crimson",
@@ -96,7 +126,10 @@ val AppThemes = listOf(
         accent = Color(0xFFE11D48),
         accent2 = Color(0xFFFB7185),
         heroTop = Color(0xFF380B14),
-        heroBottom = Color(0xFF2A0B1E)
+        heroBottom = Color(0xFF2A0B1E),
+        background = Color(0xFF100909),
+        surface = Color(0xFF1D1013),
+        surfaceVariant = Color(0xFF2B171C)
     ),
     AppTheme(
         id = "royal",
@@ -104,7 +137,10 @@ val AppThemes = listOf(
         accent = Color(0xFFA78BFA),
         accent2 = Color(0xFFFBBF24),
         heroTop = Color(0xFF1D1A3A),
-        heroBottom = Color(0xFF2A2110)
+        heroBottom = Color(0xFF2A2110),
+        background = Color(0xFF0D0C14),
+        surface = Color(0xFF171426),
+        surfaceVariant = Color(0xFF231D3A)
     ),
     AppTheme(
         id = "sakura",
@@ -112,7 +148,10 @@ val AppThemes = listOf(
         accent = Color(0xFFF9A8D4),
         accent2 = Color(0xFFF472B6),
         heroTop = Color(0xFF331425),
-        heroBottom = Color(0xFF2B1030)
+        heroBottom = Color(0xFF2B1030),
+        background = Color(0xFF100B0F),
+        surface = Color(0xFF1D131B),
+        surfaceVariant = Color(0xFF2C1D28)
     ),
     AppTheme(
         id = "graphite",
@@ -120,7 +159,10 @@ val AppThemes = listOf(
         accent = Color(0xFFE2E8F0),
         accent2 = Color(0xFF94A3B8),
         heroTop = Color(0xFF1E293B),
-        heroBottom = Color(0xFF0F172A)
+        heroBottom = Color(0xFF0F172A),
+        background = Color(0xFF0C0E12),
+        surface = Color(0xFF151A22),
+        surfaceVariant = Color(0xFF1F2733)
     )
 )
 
@@ -137,9 +179,9 @@ fun NerkhCheckTheme(appTheme: AppTheme, content: @Composable () -> Unit) {
                 primary = appTheme.accent,
                 onPrimary = Color(0xFF14100A),
                 secondary = Color(0xFF8B93A7),
-                background = Color(0xFF0A0E1A),
-                surface = Color(0xFF131B30),
-                surfaceVariant = Color(0xFF1B2440),
+                background = appTheme.background,
+                surface = appTheme.surface,
+                surfaceVariant = appTheme.surfaceVariant,
                 onBackground = Color(0xFFF4F6FB),
                 onSurface = Color(0xFFF4F6FB),
                 error = Color(0xFFF87171)
