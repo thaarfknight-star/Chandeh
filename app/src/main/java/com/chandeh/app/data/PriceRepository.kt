@@ -2,9 +2,11 @@ package com.chandeh.app.data
 
 import android.content.SharedPreferences
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import kotlin.math.abs
 
@@ -31,6 +33,9 @@ class PriceRepository(
     private val cache: PriceCache? = prefs?.let { PriceCache(it) }
 
     suspend fun fetchPrices(): Result<List<PriceItem>> = runCatching {
+        // همه‌ی شبکه و کش روی IO؛ فراخوانی از نخ اصلی (مثل viewModelScope)
+        // وگرنه NetworkOnMainThreadException می‌دهد و همه‌ی منبع‌ها یک‌جا می‌میرند
+        withContext(Dispatchers.IO) {
         val merged = LinkedHashMap<String, PriceItem>()
         val failures = mutableListOf<String>()
         supervisorScope {
@@ -114,6 +119,7 @@ class PriceRepository(
         }
         if (final.isEmpty()) throw allFailedError(failures)
         final
+        } // withContext(IO)
     }
 
     private fun allFailedError(failures: List<String> = emptyList()): Throwable {
@@ -129,17 +135,25 @@ class PriceRepository(
      * (تا مشکل شبکه/سرور سریع تشخیص داده شود)
      */
     private fun shortReason(e: Throwable?): String {
+        val cls = e?.javaClass?.simpleName.orEmpty()
+        val cl = cls.lowercase()
         val msg = e?.message.orEmpty().lowercase()
-        return when {
-            "timed out" in msg || "timeout" in msg -> "تایم‌اوت"
-            "unable to resolve host" in msg || "unknownhost" in msg -> "عدم دسترسی به سرور"
+        val fa = when {
+            "timed out" in msg || "timeout" in msg || "sockettimeout" in cl -> "تایم‌اوت"
+            "unable to resolve host" in msg || "unknownhost" in cl -> "عدم دسترسی به سرور"
+            "failed to connect" in msg || "connectexception" in cl -> "قطع اتصال به سرور"
+            "connection reset" in msg || "econnreset" in msg -> "اتصال ریست شد"
+            "network is unreachable" in msg || "enetunreach" in msg -> "قطع اتصال"
+            "handshake" in msg || "ssl" in msg || "certificate" in msg || "certpath" in cl -> "خطای امنیتی اتصال"
+            "networkonmainthread" in cl -> "باگ داخلی برنامه"
             "http 404" in msg -> "خطای ۴۰۴"
             "http 403" in msg -> "خطای ۴۰۳"
             "http 429" in msg -> "محدودیت نرخ"
-            "connection" in msg || "network" in msg || "econn" in msg -> "قطع اتصال"
-            "ssl" in msg || "handshake" in msg -> "خطای امنیتی اتصال"
+            "http 5" in msg -> "خطای سرور"
             else -> "خطا"
         }
+        // نام کلاس اکسپشن هم می‌آید تا علت دقیق در گزارش بعدی معلوم باشد
+        return if (cls.isNotEmpty()) "$fa ($cls)" else fa
     }
 
     /**
