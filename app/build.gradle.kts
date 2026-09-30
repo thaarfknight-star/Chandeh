@@ -12,8 +12,8 @@ android {
         applicationId = "com.chandeh.app"
         minSdk = 23
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.0.3"
+        versionCode = 9
+        versionName = "1.0.4"
     }
 
     buildTypes {

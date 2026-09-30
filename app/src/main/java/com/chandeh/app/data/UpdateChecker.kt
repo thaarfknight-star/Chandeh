@@ -5,49 +5,79 @@ import com.chandeh.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.util.Calendar
+import java.io.File
 
 /**
- * موتور بررسی آپدیت: روزی یک‌بار آخرین ریلیز گیت‌هاب را چک می‌کند و اگر
- * نسخه‌ی جدیدتری از نسخه‌ی نصب‌شده پیدا شد، اطلاعاتش را برمی‌گرداند تا
- * برنامه داخل خودش آلارم بدهد.
+ * موتور آپدیت دوطبقه:
  *
- * همه‌ی خطاها (قطعی اینترنت، بلاک بودن api.github.com و...) بی‌صدا
- * نادیده گرفته می‌شوند؛ این چک هیچ‌وقت نباید کار اصلی برنامه را خراب کند.
+ * ۱. «فایل آپدیت» (update.json روی گیت‌هاب): محتوای قابل‌تعویض مثل تم‌های
+ *    جدید. خود برنامه دانلودش می‌کند و همان‌لحظه اعمال می‌کند —
+ *    بدون دانلود APK و بدون نصب مجدد.
+ * ۲. «آپدیت کد» (ریلیز گیت‌هاب): وقتی خود کد عوض شده باشد، چاره‌ای جز
+ *    APK جدید نیست (محدودیت اندروید)؛ ولی دانلود و شروع نصب هم داخل
+ *    خود برنامه انجام می‌شود، نه در مرورگر.
+ *
+ * بررسی با هر بار باز شدن برنامه انجام می‌شود (حداکثر ساعتی یک‌بار) و
+ * دکمه‌ی «بررسی آپدیت» در تنظیمات هم چک فوری می‌کند؛ دیگر نیازی به
+ * پاک کردن داده‌های برنامه نیست. همه‌ی خطاها بی‌صدا نادیده گرفته
+ * می‌شوند تا کار اصلی برنامه مختل نشود.
  */
 object UpdateChecker {
     private const val RELEASES_URL =
         "https://api.github.com/repos/thaarfknight-star/NerkhCheck/releases/latest"
     private const val FALLBACK_URL =
         "https://github.com/thaarfknight-star/NerkhCheck/releases"
-    private const val PREF_LAST_CHECK = "update_last_check_day"
+    private const val PREF_LAST_CHECK_MS = "update_last_check_ms"
     private const val PREF_DISMISSED = "update_dismissed_version"
 
-    data class UpdateInfo(val version: String, val url: String)
+    /** حداکثر فاصله‌ی بین دو چک خودکار */
+    private const val CHECK_THROTTLE_MS = 60 * 60 * 1000L
+
+    /** فایل آپدیت محتوا؛ دومی جایگزین اولی است اگر در دسترس نباشد */
+    private val CONTENT_URLS = listOf(
+        "https://raw.githubusercontent.com/thaarfknight-star/NerkhCheck/main/update.json",
+        "https://cdn.jsdelivr.net/gh/thaarfknight-star/NerkhCheck@main/update.json"
+    )
+
+    data class ApkUpdateInfo(
+        val version: String,
+        val pageUrl: String,
+        /** اگر ریلیز فایل APK داشته باشد، لینک مستقیم دانلودش */
+        val apkUrl: String?
+    )
 
     /**
-     * اگر نسخه‌ی جدیدی روی گیت‌هاب باشد و امروز هنوز اطلاع‌رسانی نشده
-     * باشد، اطلاعاتش را برمی‌گرداند؛ در غیر این صورت null.
+     * بررسی نسخه‌ی جدید کد. throttle ساعتی دارد مگر با force=true
+     * (دکمه‌ی «بررسی آپدیت» در تنظیمات).
      */
-    suspend fun check(prefs: SharedPreferences): UpdateInfo? = withContext(Dispatchers.IO) {
+    suspend fun checkApkUpdate(
+        prefs: SharedPreferences,
+        force: Boolean = false
+    ): ApkUpdateInfo? = withContext(Dispatchers.IO) {
         try {
-            // حداکثر روزی یک‌بار
-            val today = dayStamp()
-            if (prefs.getString(PREF_LAST_CHECK, null) == today) return@withContext null
-
+            val now = System.currentTimeMillis()
+            if (!force && now - prefs.getLong(PREF_LAST_CHECK_MS, 0L) < CHECK_THROTTLE_MS) {
+                return@withContext null
+            }
             val body = HttpClient.get(RELEASES_URL)
             val json = JSONObject(body)
             val remote = json.optString("tag_name", "")
                 .trim().removePrefix("v").removePrefix("V")
             if (remote.isEmpty()) return@withContext null
 
-            prefs.edit().putString(PREF_LAST_CHECK, today).apply()
+            prefs.edit().putLong(PREF_LAST_CHECK_MS, now).apply()
 
             val local = BuildConfig.VERSION_NAME.trim().removePrefix("v").removePrefix("V")
             val dismissed = prefs.getString(PREF_DISMISSED, null)
             if (isNewer(remote, local) && dismissed != remote) {
-                val url = json.optString("html_url", "").ifEmpty { FALLBACK_URL }
-                UpdateInfo(remote, url)
+                val pageUrl = json.optString("html_url", "").ifEmpty { FALLBACK_URL }
+                val apkUrl = json.optJSONArray("assets")?.let { arr ->
+                    (0 until arr.length())
+                        .map { arr.getJSONObject(it).optString("browser_download_url", "") }
+                        .firstOrNull { it.endsWith(".apk", ignoreCase = true) }
+                        ?.ifEmpty { null }
+                }
+                ApkUpdateInfo(remote, pageUrl, apkUrl)
             } else {
                 null
             }
@@ -56,18 +86,54 @@ object UpdateChecker {
         }
     }
 
+    /**
+     * فایل آپدیت محتوا را می‌گیرد و همان‌لحظه اعمال می‌کند.
+     * برمی‌گرداند چند مورد «واقعاً جدید» اضافه شد (۰ = چیزی تازه نبود).
+     */
+    suspend fun checkContentUpdate(prefs: SharedPreferences): Int = withContext(Dispatchers.IO) {
+        try {
+            var body: String? = null
+            for (u in CONTENT_URLS) {
+                body = runCatching { HttpClient.get(u) }.getOrNull()
+                if (body != null) break
+            }
+            body ?: return@withContext 0
+            ThemeStore.applyUpdate(prefs, body)
+        } catch (_: Exception) {
+            0
+        }
+    }
+
     /** کاربر «بعداً» را زده؛ تا ریلیز بعدی دیگر آلارم نده */
     fun dismiss(prefs: SharedPreferences, version: String) {
         prefs.edit().putString(PREF_DISMISSED, version).apply()
     }
 
-    private fun dayStamp(): String {
-        val c = Calendar.getInstance()
-        return "%04d-%02d-%02d".format(
-            c.get(Calendar.YEAR),
-            c.get(Calendar.MONTH) + 1,
-            c.get(Calendar.DAY_OF_MONTH)
-        )
+    /**
+     * دانلود فایل (APK) با گزارش پیشرفت ۰ تا ۱۰۰.
+     * false یعنی دانلود ناقص/ناموفق بود.
+     */
+    suspend fun downloadFile(
+        url: String,
+        dest: File,
+        onProgress: (Int) -> Unit
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            var lastPct = -1
+            HttpClient.download(url, dest) { done, total ->
+                if (total > 0) {
+                    val pct = ((done * 100) / total).toInt().coerceIn(0, 100)
+                    if (pct != lastPct) {
+                        lastPct = pct
+                        // کال‌بک روی نخ اصلی تا به‌روزرسانی UI امن باشد
+                        withContext(Dispatchers.Main) { onProgress(pct) }
+                    }
+                }
+            }
+            dest.exists() && dest.length() > 0
+        } catch (_: Exception) {
+            false
+        }
     }
 
     /** مقایسه‌ی معنایی نسخه‌ها: 1.0.2 بزرگ‌تر از 1.0.1 است */

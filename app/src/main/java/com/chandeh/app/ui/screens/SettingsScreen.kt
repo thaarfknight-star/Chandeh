@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.CurrencyExchange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,7 +54,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chandeh.app.BuildConfig
 import com.chandeh.app.ui.theme.AppTheme
-import com.chandeh.app.ui.theme.AppThemes
 
 private fun openUrl(ctx: Context, url: String) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
@@ -64,9 +64,13 @@ private fun openUrl(ctx: Context, url: String) {
 @Composable
 fun SettingsScreen(
     theme: AppTheme,
+    allThemes: List<AppTheme>,
     onThemeChange: (AppTheme) -> Unit,
     brsKey: String,
-    onBrsKeyChange: (String) -> Unit
+    onBrsKeyChange: (String) -> Unit,
+    updateStatus: String?,
+    checkingUpdate: Boolean,
+    onCheckUpdate: () -> Unit
 ) {
     val ctx = LocalContext.current
     Column(
@@ -126,7 +130,7 @@ fun SettingsScreen(
 
         SettingsSection(title = "تم رنگی", icon = Icons.Filled.Palette) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                AppThemes.chunked(3).forEach { row ->
+                allThemes.chunked(3).forEach { row ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -142,6 +146,29 @@ fun SettingsScreen(
                         // اگر ردیف ناقص بود، فضای خالی را پر کن
                         repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                     }
+                }
+            }
+        }
+
+        SettingsSection(title = "به‌روزرسانی", icon = Icons.Filled.SystemUpdate) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    "فایل‌های آپدیت (مثل تم‌های جدید) به‌صورت خودکار دریافت و همان‌لحظه اعمال می‌شوند. برای نسخه‌های جدید کد هم، خود برنامه دانلود و نصب می‌کند.",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Button(
+                    onClick = onCheckUpdate,
+                    enabled = !checkingUpdate
+                ) {
+                    Text(if (checkingUpdate) "در حال بررسی..." else "بررسی آپدیت")
+                }
+                if (updateStatus != null) {
+                    Text(
+                        updateStatus,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
         }

@@ -5,6 +5,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
+import java.io.File
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -60,6 +61,33 @@ object HttpClient {
             val respBody = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for $url")
             return respBody
+        }
+    }
+
+    /**
+     * دانلود فایل روی دیسک با گزارش پیشرفت؛ در صورت خطا استثنا می‌دهد.
+     * onProgress روی همان نخ فراخواننده صدا زده می‌شود.
+     */
+    @Throws(IOException::class)
+    fun download(url: String, dest: File, onProgress: (done: Long, total: Long) -> Unit) {
+        val req = Request.Builder().url(url).build()
+        client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for $url")
+            val body = resp.body ?: throw IOException("empty body for $url")
+            val total = body.contentLength()
+            body.byteStream().use { input ->
+                dest.outputStream().use { output ->
+                    val buf = ByteArray(8192)
+                    var done = 0L
+                    while (true) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        output.write(buf, 0, n)
+                        done += n
+                        onProgress(done, total)
+                    }
+                }
+            }
         }
     }
 }

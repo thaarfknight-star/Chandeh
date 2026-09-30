@@ -35,9 +35,9 @@ import com.chandeh.app.data.Prefs
 import com.chandeh.app.data.PriceItem
 import com.chandeh.app.data.PriceRepository
 import com.chandeh.app.ui.theme.AppTheme
+import com.chandeh.app.data.ThemeStore
 import com.chandeh.app.ui.theme.LossRed
 import com.chandeh.app.ui.theme.ProfitGreen
-import com.chandeh.app.ui.theme.appThemeById
 import com.chandeh.app.util.toFaDigits
 import com.chandeh.app.util.toFaPercent
 import com.chandeh.app.util.toFaToman
@@ -48,7 +48,7 @@ class PriceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val prefs = context.getSharedPreferences(Prefs.NAME, Context.MODE_PRIVATE)
-        val theme = appThemeById(prefs.getString(Prefs.KEY_THEME, null))
+        val theme = ThemeStore.themeById(prefs, prefs.getString(Prefs.KEY_THEME, null))
         val brsKey = prefs.getString(Prefs.KEY_BRS_API, null)
         val items = runCatching {
             PriceRepository(brsApiKey = brsKey, prefs = prefs).fetchPrices().getOrNull()
