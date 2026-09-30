@@ -56,8 +56,13 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           VER="${TAG#v}"
-          gh release create "$TAG" apk/NerkhCheck.apk \
-            --title "نسخه‌ی $VER" \
-            --notes "نسخه‌ی $VER منتشر شد.
+          # اگر ریلیز از قبل (مثلاً از مرورگر) ساخته شده بود، فقط APK را ضمیمه کن
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" apk/NerkhCheck.apk --clobber
+          else
+            gh release create "$TAG" apk/NerkhCheck.apk \
+              --title "نسخه‌ی $VER" \
+              --notes "نسخه‌ی $VER منتشر شد.
 
           برای به‌روزرسانی، کافی است در برنامه «بررسی آپدیت» را بزنید تا دانلود و نصب داخل خود برنامه انجام شود."
+          fi
