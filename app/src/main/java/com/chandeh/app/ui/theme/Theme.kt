@@ -30,7 +30,7 @@ data class AppTheme(
     val surfaceVariant: Color
 )
 
-/** دوازده تم ترکیب‌رنگی */
+/** سیزده تم ترکیب‌رنگی */
 val AppThemes = listOf(
     AppTheme(
         id = "aurora",
@@ -163,6 +163,17 @@ val AppThemes = listOf(
         background = Color(0xFF0C0E12),
         surface = Color(0xFF151A22),
         surfaceVariant = Color(0xFF1F2733)
+    ),
+    AppTheme(
+        id = "emerald",
+        nameFa = "زمرد",
+        accent = Color(0xFF10B981),
+        accent2 = Color(0xFFF59E0B),
+        heroTop = Color(0xFF064E3B),
+        heroBottom = Color(0xFF1C1410),
+        background = Color(0xFF07110D),
+        surface = Color(0xFF0D1B14),
+        surfaceVariant = Color(0xFF142A1E)
     )
 )
 
