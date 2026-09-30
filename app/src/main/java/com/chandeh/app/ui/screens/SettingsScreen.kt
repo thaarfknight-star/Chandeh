@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CurrencyExchange
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Send
@@ -59,6 +60,28 @@ private fun openUrl(ctx: Context, url: String) {
     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     ctx.startActivity(intent)
+}
+
+/** باز کردن بروشور معرفی برنامه (intro.pdf داخل assets) با نمایشگر PDF گوشی */
+private fun openIntroPdf(ctx: Context) {
+    try {
+        val file = java.io.File(ctx.cacheDir, "intro.pdf")
+        if (!file.exists()) {
+            ctx.assets.open("intro.pdf").use { input ->
+                file.outputStream().use { output -> input.copyTo(output) }
+            }
+        }
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            ctx, "${ctx.packageName}.fileprovider", file
+        )
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/pdf")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        ctx.startActivity(Intent.createChooser(intent, "معرفی NerkhCheck"))
+    } catch (_: Exception) {
+    }
 }
 
 @Composable
@@ -179,6 +202,12 @@ fun SettingsScreen(
                     icon = Icons.Filled.Info,
                     title = "نسخه‌ی برنامه",
                     value = BuildConfig.VERSION_NAME
+                )
+                InfoRow(
+                    icon = Icons.Filled.Description,
+                    title = "معرفی برنامه",
+                    value = "بروشور NerkhCheck",
+                    onClick = { openIntroPdf(ctx) }
                 )
                 InfoRow(
                     icon = Icons.Filled.Code,
