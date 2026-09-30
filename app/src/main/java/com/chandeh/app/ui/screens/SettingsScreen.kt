@@ -88,7 +88,7 @@ fun SettingsScreen(
                 Text(
                     "روی اینترنت ملی، قیمت طلا و سکه به‌صورت زنده دریافت می‌شود. برای قیمت لحظه‌ای دلار و ارزها هم، کلید رایگان BRS را وارد کنید؛ در غیر این صورت آخرین قیمت ذخیره‌شده نمایش داده می‌شود.",
                     fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 var draft by remember(brsKey) { mutableStateOf(brsKey) }
                 OutlinedTextField(
@@ -118,7 +118,7 @@ fun SettingsScreen(
                     Text(
                         "✓ کلید ذخیره شده و برای به‌روزرسانی بعدی استفاده می‌شود",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -294,10 +294,10 @@ private fun InfoRow(
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, fontSize = 14.sp, color = MaterialTheme.colorScheme.secondary)
+            Text(title, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
             Text(value, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             if (subtitle != null) {
-                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
+                Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

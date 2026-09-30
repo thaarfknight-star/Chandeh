@@ -32,12 +32,15 @@ class PriceRepository(
 
     suspend fun fetchPrices(): Result<List<PriceItem>> = runCatching {
         val merged = LinkedHashMap<String, PriceItem>()
+        val failures = mutableListOf<String>()
         supervisorScope {
-            val jobs = mutableListOf<Deferred<Result<Map<String, PriceItem>>>>()
+            // هر جاب نام منبعش را هم حمل می‌کند تا اگر همه شکست خوردند،
+            // علت خرابی هر منبع در پیام خطا بیاید (تشخیص سریع مشکل)
+            val jobs = mutableListOf<Deferred<Pair<String, Result<Map<String, PriceItem>>>>>()
             val key = brsApiKey?.trim().orEmpty()
             if (key.isNotEmpty()) {
                 jobs += async {
-                    runCatching {
+                    "BRS" to runCatching {
                         parseBrs(HttpClient.get(BRS_API_URL + key)).associateBy { it.code }
                     }
                 }
@@ -45,7 +48,7 @@ class PriceRepository(
             // نوبیتکس — سرور ایران، بدون نیاز به کلید (۳ درخواست موازی)
             for ((src, appCode) in NOBITEX_MAP) {
                 jobs += async {
-                    runCatching {
+                    "نوبیتکس" to runCatching {
                         val body = HttpClient.post(
                             NOBITEX_URL,
                             """{"srcCurrency":"$src","dstCurrency":"rls"}"""
@@ -56,7 +59,7 @@ class PriceRepository(
                 }
             }
             jobs += async {
-                runCatching {
+                "tala.ir" to runCatching {
                     // اعتبارسنجی در برابر کش: فید tala.ir گاهی مقادیر خراب می‌دهد
                     val known = cache?.load().orEmpty()
                     parseTala(HttpClient.get(TALA_PRICE_URL))
@@ -65,14 +68,14 @@ class PriceRepository(
                 }
             }
             jobs += async {
-                runCatching {
+                "TGJU" to runCatching {
                     // پارامتر ضدکش تا همیشه تازه‌ترین صفحه گرفته شود
                     val url = TgjuService.HOMEPAGE_URL + "?_=" + System.currentTimeMillis()
                     parseHomepage(HttpClient.get(url)).associateBy { it.code }
                 }
             }
             jobs += async {
-                runCatching {
+                "اسنیپت TGJU" to runCatching {
                     // اسنیپت فقط نمادهای غیرکریپتو را می‌شناسد و نگاشتش
                     // موقعیتی است؛ پس کریپتوها از درخواست حذف می‌شوند
                     val defs = SYMBOLS.filter { it.category != Category.CRYPTO }
@@ -81,8 +84,12 @@ class PriceRepository(
                         .associateBy { it.code }
                 }
             }
-            for (r in jobs.awaitAll()) {
-                val m = r.getOrNull() ?: continue
+            for ((name, r) in jobs.awaitAll()) {
+                val m = r.getOrNull()
+                if (m == null) {
+                    failures += "$name: ${shortReason(r.exceptionOrNull())}"
+                    continue
+                }
                 for ((code, item) in m) merged.putIfAbsent(code, item)
             }
         }
@@ -93,8 +100,9 @@ class PriceRepository(
             ?: cache?.load()?.get("price_dollar_rl")?.priceToman
         val missingCrypto = SYMBOLS.any { it.category == Category.CRYPTO && !merged.containsKey(it.code) }
         if (missingCrypto && dollarToman != null && dollarToman > 0) {
-            runCatching { parseCoinGecko(HttpClient.get(COINGECKO_URL), dollarToman) }
-                .getOrNull()?.forEach { (code, item) -> merged.putIfAbsent(code, item) }
+            val cgResult = runCatching { parseCoinGecko(HttpClient.get(COINGECKO_URL), dollarToman) }
+            cgResult.getOrNull()?.forEach { (code, item) -> merged.putIfAbsent(code, item) }
+            if (cgResult.isFailure) failures += "کوین‌گکو: ${shortReason(cgResult.exceptionOrNull())}"
         }
 
         val cached = cache?.load().orEmpty()
@@ -104,12 +112,35 @@ class PriceRepository(
         val final = SYMBOLS.mapNotNull { def ->
             merged[def.code] ?: cached[def.code]
         }
-        if (final.isEmpty()) throw allFailedError()
+        if (final.isEmpty()) throw allFailedError(failures)
         final
     }
 
-    private fun allFailedError(): Throwable =
-        IllegalStateException("دریافت قیمت‌ها ممکن نشد؛ اتصال اینترنت را بررسی کنید و دوباره تلاش کنید")
+    private fun allFailedError(failures: List<String> = emptyList()): Throwable {
+        val detail = if (failures.isNotEmpty())
+            " (علت‌ها: ${failures.joinToString("؛ ")})" else ""
+        return IllegalStateException(
+            "دریافت قیمت‌ها ممکن نشد$detail؛ اتصال اینترنت را بررسی کنید و دوباره تلاش کنید"
+        )
+    }
+
+    /**
+     * خلاصه‌ی فارسی علت شکست یک منبع، برای نمایش در پیام خطا
+     * (تا مشکل شبکه/سرور سریع تشخیص داده شود)
+     */
+    private fun shortReason(e: Throwable?): String {
+        val msg = e?.message.orEmpty().lowercase()
+        return when {
+            "timed out" in msg || "timeout" in msg -> "تایم‌اوت"
+            "unable to resolve host" in msg || "unknownhost" in msg -> "عدم دسترسی به سرور"
+            "http 404" in msg -> "خطای ۴۰۴"
+            "http 403" in msg -> "خطای ۴۰۳"
+            "http 429" in msg -> "محدودیت نرخ"
+            "connection" in msg || "network" in msg || "econn" in msg -> "قطع اتصال"
+            "ssl" in msg || "handshake" in msg -> "خطای امنیتی اتصال"
+            else -> "خطا"
+        }
+    }
 
     /**
      * تور ایمنی tala.ir: مقدار باید مثبت، داخل کرانه‌ی مطلق، و (اگر کشی از
