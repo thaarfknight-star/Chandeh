@@ -3,20 +3,26 @@ package com.chandeh.app.data
 import android.content.SharedPreferences
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
 import org.json.JSONObject
 import kotlin.math.abs
 
 /**
- * دریافت قیمت‌ها از چند منبع به‌صورت موازی، با ادغام بر اساس اولویت:
+ * دریافت قیمت‌ها از چند منبع به‌صورت موازی، با ادغام بر اساس اولویت
+ * (برای هر نماد، اولین منبعی که آن را داشته باشد استفاده می‌شود —
+ *  منابع داخلی اول تا روی اینترنت ملی هم کار کند):
  *
- *  ۱. BRS API (فقط اگر کلید در تنظیمات ثبت شده باشد) — سرور ایران، همه‌ی نمادها
- *  ۲. صفحه‌ی اصلی TGJU — هاست خارجی (Cloudflare)، همه‌ی نمادها
- *  ۳. tala.ir — سرور ایران، طلا و بخشی از سکه‌ها (بدون نیاز به کلید)
- *  ۴. وب‌سرویس اسنیپت TGJU — هاست خارجی، همه‌ی نمادها
+ *  ۱. BRS API (فقط اگر کلید در تنظیمات ثبت شده باشد) — سرور ایران، ارز و طلا
+ *  ۲. نوبیتکس (بدون کلید) — سرور ایران، ارز دیجیتال (بیت‌کوین/اتریوم/تتر)
+ *  ۳. tala.ir (بدون کلید) — سرور ایران، طلا و بخشی از سکه‌ها
+ *  ۴. صفحه‌ی اصلی TGJU — هاست خارجی، همه‌ی نمادها + بیت‌کوین و تتر
+ *  ۵. وب‌سرویس اسنیپت TGJU — هاست خارجی، ارز و طلا و سکه
+ *  ۶. کوین‌گکو (بدون کلید) — هاست خارجی، ارز دیجیتال؛ فقط برای کریپتوهای
+ *     جامانده و با تبدیل دلار به تومان
  *
- * برای هر نماد، اولین منبعی که آن را داشته باشد استفاده می‌شود؛ نمادهای
- * بدون داده‌ی زنده از کش پر می‌شوند (isStale=true) تا اپ هیچ‌وقت خالی نماند.
+ * نمادهای بدون داده‌ی زنده از کش پر می‌شوند (isStale=true) تا اپ هیچ‌وقت
+ * خالی نماند.
  */
 class PriceRepository(
     private val brsApiKey: String? = null,
@@ -36,11 +42,17 @@ class PriceRepository(
                     }
                 }
             }
-            jobs += async {
-                runCatching {
-                    // پارامتر ضدکش تا همیشه تازه‌ترین صفحه گرفته شود
-                    val url = TgjuService.HOMEPAGE_URL + "?_=" + System.currentTimeMillis()
-                    parseHomepage(HttpClient.get(url)).associateBy { it.code }
+            // نوبیتکس — سرور ایران، بدون نیاز به کلید (۳ درخواست موازی)
+            for ((src, appCode) in NOBITEX_MAP) {
+                jobs += async {
+                    runCatching {
+                        val body = HttpClient.post(
+                            NOBITEX_URL,
+                            """{"srcCurrency":"$src","dstCurrency":"rls"}"""
+                        )
+                        val item = parseNobitex(body, appCode)
+                        if (item != null) mapOf(item.code to item) else emptyMap()
+                    }
                 }
             }
             jobs += async {
@@ -54,8 +66,18 @@ class PriceRepository(
             }
             jobs += async {
                 runCatching {
-                    val itemsParam = SYMBOLS.joinToString(",") { it.code }
-                    parseSnippet(HttpClient.get(TgjuService.SNIPPET_URL + itemsParam))
+                    // پارامتر ضدکش تا همیشه تازه‌ترین صفحه گرفته شود
+                    val url = TgjuService.HOMEPAGE_URL + "?_=" + System.currentTimeMillis()
+                    parseHomepage(HttpClient.get(url)).associateBy { it.code }
+                }
+            }
+            jobs += async {
+                runCatching {
+                    // اسنیپت فقط نمادهای غیرکریپتو را می‌شناسد و نگاشتش
+                    // موقعیتی است؛ پس کریپتوها از درخواست حذف می‌شوند
+                    val defs = SYMBOLS.filter { it.category != Category.CRYPTO }
+                    val itemsParam = defs.joinToString(",") { it.code }
+                    parseSnippet(HttpClient.get(TgjuService.SNIPPET_URL + itemsParam), defs)
                         .associateBy { it.code }
                 }
             }
@@ -63,6 +85,16 @@ class PriceRepository(
                 val m = r.getOrNull() ?: continue
                 for ((code, item) in m) merged.putIfAbsent(code, item)
             }
+        }
+
+        // فاز دوم: کوین‌گکو (خارجی) فقط برای کریپتوهای جامانده؛
+        // به نرخ دلار نیاز دارد پس بعد از ادغام فاز اول اجرا می‌شود
+        val dollarToman = merged["price_dollar_rl"]?.priceToman
+            ?: cache?.load()?.get("price_dollar_rl")?.priceToman
+        val missingCrypto = SYMBOLS.any { it.category == Category.CRYPTO && !merged.containsKey(it.code) }
+        if (missingCrypto && dollarToman != null && dollarToman > 0) {
+            runCatching { parseCoinGecko(HttpClient.get(COINGECKO_URL), dollarToman) }
+                .getOrNull()?.forEach { (code, item) -> merged.putIfAbsent(code, item) }
         }
 
         val cached = cache?.load().orEmpty()
@@ -106,7 +138,8 @@ class PriceRepository(
      * مبالغ به ریال‌اند -> تقسیم بر ۱۰ برای تومان. جهت تغییر از کلاس high/low.
      */
     fun parseHomepage(html: String): List<PriceItem> {
-        val items = SYMBOLS.mapNotNull { def ->
+        val fiatDefs = SYMBOLS.filter { it.category != Category.CRYPTO }
+        val items = fiatDefs.mapNotNull { def ->
             val row = Regex(
                 """<tr[^>]*data-market-nameslug="${def.code}".*?</tr>""",
                 setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
@@ -138,9 +171,52 @@ class PriceRepository(
                 updatedAt = time
             )
         }
-        if (items.size < SYMBOLS.size / 2)
+        if (items.size < fiatDefs.size / 2)
             throw IllegalStateException("پاسخ سرور ناقص بود")
-        return items
+
+        // کریپتوهای زنده‌ی صفحه‌ی اصلی (سطرهای فشرده با data-price)؛
+        // بیت‌کوین به دلار است و با نرخ دلار به تومان تبدیل می‌شود، تتر به ریال
+        val dollarToman = items.firstOrNull { it.code == "price_dollar_rl" }?.priceToman ?: 0L
+        val cryptoItems = CRYPTO_TGJU.mapNotNull { (tgjuSlug, appCode, inUsd) ->
+            val def = SYMBOLS.firstOrNull { it.code == appCode } ?: return@mapNotNull null
+            val row = Regex(
+                """<tr[^>]*data-market-nameslug="$tgjuSlug".*?</tr>""",
+                setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE)
+            ).find(html)?.value ?: return@mapNotNull null
+            val priceRaw = Regex("""data-price="([\d.,]+)"""").find(row)
+                ?.groupValues?.get(1)?.replace(",", "")
+                ?.toDoubleOrNull() ?: return@mapNotNull null
+
+            val changeMatch = Regex(
+                """<span class="(high|low)">\(([-\d.]+)%\)\s*(-?[\d,]+)</span>"""
+            ).find(row)
+            val dir = changeMatch?.groupValues?.get(1)
+            val pct = changeMatch?.groupValues?.get(2)?.toDoubleOrNull() ?: 0.0
+            val changeRaw = changeMatch?.groupValues?.get(3)
+                ?.replace(",", "")?.toDoubleOrNull() ?: 0.0
+            val sign = if (dir == "low") -1 else 1
+
+            val time = Regex("""<td[^>]*>([\d۰-۹]{1,2}:[\d۰-۹]{2}(?::[\d۰-۹]{2})?)</td>""")
+                .find(row)?.groupValues?.get(1).orEmpty()
+
+            val (priceToman, changeToman) = if (inUsd) {
+                if (dollarToman <= 0) return@mapNotNull null
+                (priceRaw * dollarToman).toLong() to (sign * changeRaw * dollarToman).toLong()
+            } else {
+                // ریال -> تومان
+                (priceRaw / 10).toLong() to (sign * changeRaw / 10).toLong()
+            }
+            PriceItem(
+                code = def.code,
+                titleFa = def.titleFa,
+                category = def.category,
+                priceToman = priceToman,
+                changeToman = changeToman,
+                changePercent = sign * abs(pct),
+                updatedAt = time
+            )
+        }
+        return items + cryptoItems
     }
 
     // ------------------------------------------------------------------
@@ -150,15 +226,16 @@ class PriceRepository(
     /**
      * پارس وب‌سرویس اسنیپت (جایگزین) — نمونه سطر:
      *   | سکه امامی | 2,465,050,000 | (2.49%) 60,000,000 | ۱۴:۱۰:۴۹ |
+     * نگاشت موقعیتی است: ترتیب سطرها همان ترتیب defs درخواستی است.
      */
-    fun parseSnippet(body: String): List<PriceItem> {
+    fun parseSnippet(body: String, defs: List<SymbolDef>): List<PriceItem> {
         val rowRegex = Regex(
             """\|\s*([^|]+?)\s*\|\s*([\d,]+)\s*\|\s*\(?\s*(-?[\d.]+)\s*%\s*\)?\s*(-?[\d,]+)\s*\|\s*([^|]*?)\s*\|"""
         )
         val rows = rowRegex.findAll(body).toList()
         if (rows.isEmpty()) throw IllegalStateException("پاسخ سرور قابل خواندن نبود")
-        return rows.take(SYMBOLS.size).mapIndexed { index, m ->
-            val def = SYMBOLS[index]
+        return rows.take(defs.size).mapIndexed { index, m ->
+            val def = defs[index]
             val priceRial = m.groupValues[2].replace(",", "").toLong()
             val pct = m.groupValues[3].toDouble()
             val changeRial = m.groupValues[4].replace(",", "").toLong()
@@ -278,12 +355,110 @@ class PriceRepository(
         else -> 0.0
     }
 
+    // ------------------------------------------------------------------
+    // نوبیتکس — سرور ایران، بدون نیاز به کلید (ارز دیجیتال)
+    // ------------------------------------------------------------------
+
+    /**
+     * پارس پاسخ POST https://apiv2.nobitex.ir/market/stats
+     * نمونه: {"status":"ok","stats":{"btc-rls":{"latest":"212300000000",
+     *          "dayChange":"0.55", ...}}}
+     * مبالغ به ریال‌اند -> تقسیم بر ۱۰ برای تومان.
+     */
+    fun parseNobitex(json: String, appCode: String): PriceItem? {
+        val root = JSONObject(json)
+        if (root.optString("status") != "ok") return null
+        val stats = root.optJSONObject("stats") ?: return null
+        val keys = stats.keys()
+        if (!keys.hasNext()) return null
+        val s = stats.optJSONObject(keys.next()) ?: return null
+        val latestRial = s.optString("latest").toDoubleOrNull() ?: return null
+        if (latestRial <= 0) return null
+        val def = SYMBOLS.firstOrNull { it.code == appCode } ?: return null
+        val pct = s.optString("dayChange").toDoubleOrNull() ?: 0.0
+        val priceToman = (latestRial / 10).toLong()
+        return PriceItem(
+            code = def.code,
+            titleFa = def.titleFa,
+            category = def.category,
+            priceToman = priceToman,
+            changeToman = (priceToman * pct / 100).toLong(),
+            changePercent = pct,
+            updatedAt = ""
+        )
+    }
+
+    // ------------------------------------------------------------------
+    // کوین‌گکو — هاست خارجی، بدون نیاز به کلید (ارز دیجیتال)
+    // ------------------------------------------------------------------
+
+    /**
+     * پارس پاسخ CoinGecko — قیمت‌ها به دلارند و با نرخ دلار به تومان
+     * تبدیل می‌شوند. فقط برای کریپتوهای جامانده از منابع دیگر صدا زده می‌شود.
+     */
+    fun parseCoinGecko(json: String, dollarToman: Long): Map<String, PriceItem> {
+        if (dollarToman <= 0) return emptyMap()
+        val root = JSONObject(json)
+        val defs = SYMBOLS.associateBy { it.code }
+        val out = LinkedHashMap<String, PriceItem>()
+        for ((cgId, appCode) in COINGECKO_MAP) {
+            val o = root.optJSONObject(cgId) ?: continue
+            val usd = o.optDouble("usd", 0.0)
+            if (usd <= 0) continue
+            val def = defs[appCode] ?: continue
+            val pct = o.optDouble("usd_24h_change", 0.0)
+            val priceToman = (usd * dollarToman).toLong()
+            out[appCode] = PriceItem(
+                code = def.code,
+                titleFa = def.titleFa,
+                category = def.category,
+                priceToman = priceToman,
+                changeToman = (priceToman * pct / 100).toLong(),
+                changePercent = pct,
+                updatedAt = ""
+            )
+        }
+        return out
+    }
+
     companion object {
         /** سایت طلا (اتحادیه) — سرور ایران، بدون نیاز به کلید */
         const val TALA_PRICE_URL = "https://www.tala.ir/ajax/price"
 
         /** وب‌سرویس BRS — سرور ایران، نیازمند کلید رایگان */
         const val BRS_API_URL = "https://api.brsapi.ir/Market/Gold_Currency.php?key="
+
+        /** نوبیتکس — سرور ایران، بدون نیاز به کلید (ارز دیجیتال) */
+        const val NOBITEX_URL = "https://apiv2.nobitex.ir/market/stats"
+
+        /** کوین‌گکو — هاست خارجی، بدون نیاز به کلید (ارز دیجیتال، به دلار) */
+        const val COINGECKO_URL =
+            "https://api.coingecko.com/api/v3/simple/price" +
+                "?ids=bitcoin,ethereum,tether&vs_currencies=usd&include_24hr_change=true"
+
+        /** نگاشت ارز نوبیتکس (srcCurrency) به کد نماد برنامه */
+        private val NOBITEX_MAP = listOf(
+            "btc" to "btc",
+            "eth" to "eth",
+            "usdt" to "usdt"
+        )
+
+        /**
+         * کریپتوهای زنده‌ی صفحه‌ی اصلی TGJU: (نام‌اسلاگ، کد برنامه، آیا به دلار است؟)
+         * - بیت‌کوین به دلار است و با نرخ دلار به تومان تبدیل می‌شود
+         * - تتر به ریال است (مثل فیات، تقسیم بر ۱۰)
+         */
+        private val CRYPTO_TGJU = listOf(
+            Triple("crypto-bitcoin", "btc", true),
+            Triple("crypto-tether", "usdt", false)
+        )
+
+        /** نگاشت شناسه‌ی کوین‌گکو به کد نماد برنامه */
+        private val COINGECKO_MAP = mapOf(
+            "bitcoin" to "btc",
+            "ethereum" to "eth",
+            "tether" to "usdt"
+        )
 
         /** نگاشت کلیدهای tala.ir به کد نمادهای برنامه.
          *  سکه‌ی امامی/بهار عمداً نیست: فیدشان خراب است (خود tala.ir هم «-»

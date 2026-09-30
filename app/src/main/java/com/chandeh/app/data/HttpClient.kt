@@ -1,7 +1,9 @@
 package com.chandeh.app.data
 
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import java.io.IOException
 import java.util.concurrent.TimeUnit
@@ -46,6 +48,18 @@ object HttpClient {
             val body = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for $url")
             return body
+        }
+    }
+
+    /** POST با بدنه‌ی JSON؛ در صورت خطای HTTP یا شبکه استثنا می‌دهد */
+    @Throws(IOException::class)
+    fun post(url: String, jsonBody: String): String {
+        val body = jsonBody.toRequestBody("application/json; charset=utf-8".toMediaType())
+        val req = Request.Builder().url(url).post(body).build()
+        client.newCall(req).execute().use { resp ->
+            val respBody = resp.body?.string().orEmpty()
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for $url")
+            return respBody
         }
     }
 }

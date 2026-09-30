@@ -4,7 +4,8 @@ package com.chandeh.app.data
 enum class Category(val titleFa: String) {
     CURRENCY("ارزها"),
     GOLD("طلا"),
-    COIN("سکه")
+    COIN("سکه"),
+    CRYPTO("ارز دیجیتال")
 }
 
 /** تعریف یک نماد: کد داخلی TGJU + عنوان فارسی */
@@ -40,6 +41,10 @@ val SYMBOLS = listOf(
     SymbolDef("nim", "نیم‌سکه", Category.COIN),
     SymbolDef("rob", "ربع‌سکه", Category.COIN),
     SymbolDef("gerami", "سکه گرمی", Category.COIN),
+    // ارز دیجیتال
+    SymbolDef("btc", "بیت‌کوین", Category.CRYPTO),
+    SymbolDef("eth", "اتریوم", Category.CRYPTO),
+    SymbolDef("usdt", "تتر", Category.CRYPTO),
 )
 
 /** یک قلم قیمت — همه‌ی مبالغ به تومان.
