@@ -66,10 +66,14 @@ object HttpClient {
 
     /**
      * دانلود فایل روی دیسک با گزارش پیشرفت؛ در صورت خطا استثنا می‌دهد.
-     * onProgress روی همان نخ فراخواننده صدا زده می‌شود.
+     * onProgress یک لنبدای suspend است تا صداکننده بتواند به نخ اصلی سوییچ کند.
      */
     @Throws(IOException::class)
-    fun download(url: String, dest: File, onProgress: (done: Long, total: Long) -> Unit) {
+    suspend fun download(
+        url: String,
+        dest: File,
+        onProgress: suspend (done: Long, total: Long) -> Unit
+    ) {
         val req = Request.Builder().url(url).build()
         client.newCall(req).execute().use { resp ->
             if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for $url")
