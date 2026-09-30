@@ -7,8 +7,10 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -165,6 +167,37 @@ class MainActivity : ComponentActivity() {
                             UpdateChecker.dismiss(prefs, info.version)
                             updateInfo = null
                         }
+                        fun downloadAndInstall(apkUrl: String) {
+                            scope.launch {
+                                val dest = File(ctx.cacheDir, "nerkhcheck-update.apk")
+                                val ok = UpdateChecker.downloadFile(apkUrl, dest) { pct ->
+                                    progress = pct
+                                }
+                                if (ok) {
+                                    dismiss()
+                                    installApk(ctx, dest)
+                                } else {
+                                    progress = null
+                                    failed = true
+                                }
+                            }
+                        }
+                        // برگشت از صفحه‌ی اجازه‌ی «نصب برنامه‌های ناشناس» —
+                        // اگر اجازه داده شده، دانلود و نصب خودکار ادامه پیدا می‌کند
+                        val permissionLauncher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.StartActivityForResult()
+                        ) {
+                            if (hasInstallPermission(ctx)) {
+                                val url = info.apkUrl
+                                if (url != null) downloadAndInstall(url)
+                            } else {
+                                Toast.makeText(
+                                    ctx,
+                                    "برای نصب آپدیت، اجازه‌ی «نصب برنامه‌های ناشناس» لازم است",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
                         AlertDialog(
                             onDismissRequest = { dismiss() },
                             title = { Text("نسخه‌ی جدید منتشر شد") },
@@ -193,18 +226,11 @@ class MainActivity : ComponentActivity() {
                                     onClick = {
                                         val apkUrl = info.apkUrl
                                         if (apkUrl != null && progress == null && !failed) {
-                                            scope.launch {
-                                                val dest = File(ctx.cacheDir, "nerkhcheck-update.apk")
-                                                val ok = UpdateChecker.downloadFile(apkUrl, dest) { pct ->
-                                                    progress = pct
-                                                }
-                                                if (ok) {
-                                                    dismiss()
-                                                    installApk(ctx, dest)
-                                                } else {
-                                                    progress = null
-                                                    failed = true
-                                                }
+                                            // اول اجازه‌ی نصب، بعد دانلود و نصب
+                                            if (needsInstallPermission(ctx)) {
+                                                permissionLauncher.launch(unknownSourcesIntent(ctx))
+                                            } else {
+                                                downloadAndInstall(apkUrl)
                                             }
                                         } else {
                                             dismiss()
@@ -299,20 +325,30 @@ fun MainScreen(
 }
 
 /** شروع نصب APK دانلودشده، داخل خود برنامه */
-private fun installApk(ctx: Context, apkFile: File) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+/** آیا برای نصب APK اجازه‌ی «نصب برنامه‌های ناشناس» لازم است؟ (اندروید ۸ به بالا) */
+private fun needsInstallPermission(ctx: Context): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
         !ctx.packageManager.canRequestPackageInstalls()
-    ) {
+
+private fun hasInstallPermission(ctx: Context): Boolean = !needsInstallPermission(ctx)
+
+/** اینتنت صفحه‌ی اجازه‌ی «نصب برنامه‌های ناشناس» برای همین برنامه */
+private fun unknownSourcesIntent(ctx: Context): Intent =
+    Intent(
+        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+        Uri.parse("package:${ctx.packageName}")
+    )
+
+private fun installApk(ctx: Context, apkFile: File) {
+    if (needsInstallPermission(ctx)) {
         Toast.makeText(
             ctx,
             "برای نصب، اجازه‌ی «نصب برنامه‌های ناشناس» را بدهید",
             Toast.LENGTH_LONG
         ).show()
-        val intent = Intent(
-            android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-            Uri.parse("package:${ctx.packageName}")
-        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        ctx.startActivity(intent)
+        ctx.startActivity(
+            unknownSourcesIntent(ctx).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
         return
     }
     val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", apkFile)
