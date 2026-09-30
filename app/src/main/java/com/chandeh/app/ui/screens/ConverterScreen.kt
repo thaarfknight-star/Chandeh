@@ -64,10 +64,10 @@ fun ConverterScreen(items: List<PriceItem>) {
     // «تومان ایران» همیشه در دسترس است، حتی قبل از بارگذاری قیمت‌ها
     val allItems = remember(items) { listOf(TomanItem) + items }
     var amountText by remember { mutableStateOf("1") }
-    var fromCode by remember(allItems) {
+    var fromCode: String? by remember(allItems) {
         mutableStateOf(allItems.find { it.code == "price_dollar_rl" }?.code)
     }
-    var toCode by remember(allItems) { mutableStateOf(TomanItem.code) }
+    var toCode: String? by remember(allItems) { mutableStateOf(TomanItem.code) }
 
     val amount = amountText.toDoubleOrNull() ?: 0.0
     val from = allItems.find { it.code == fromCode }
