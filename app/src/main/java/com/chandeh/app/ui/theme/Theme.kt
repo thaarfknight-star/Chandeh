@@ -24,7 +24,7 @@ data class AppTheme(
     val heroBottom: Color
 )
 
-/** شش تم ترکیب‌رنگی */
+/** دوازده تم ترکیب‌رنگی */
 val AppThemes = listOf(
     AppTheme(
         id = "aurora",
@@ -73,6 +73,54 @@ val AppThemes = listOf(
         accent2 = Color(0xFFE879F9),
         heroTop = Color(0xFF0A2E38),
         heroBottom = Color(0xFF2E1040)
+    ),
+    AppTheme(
+        id = "gold",
+        nameFa = "طلایی",
+        accent = Color(0xFFFBBF24),
+        accent2 = Color(0xFFD97706),
+        heroTop = Color(0xFF2A1E08),
+        heroBottom = Color(0xFF1A1206)
+    ),
+    AppTheme(
+        id = "ocean",
+        nameFa = "اقیانوس",
+        accent = Color(0xFF3B82F6),
+        accent2 = Color(0xFF06B6D4),
+        heroTop = Color(0xFF0A1E3C),
+        heroBottom = Color(0xFF082A38)
+    ),
+    AppTheme(
+        id = "crimson",
+        nameFa = "زرشکی",
+        accent = Color(0xFFE11D48),
+        accent2 = Color(0xFFFB7185),
+        heroTop = Color(0xFF380B14),
+        heroBottom = Color(0xFF2A0B1E)
+    ),
+    AppTheme(
+        id = "royal",
+        nameFa = "سلطنتی",
+        accent = Color(0xFFA78BFA),
+        accent2 = Color(0xFFFBBF24),
+        heroTop = Color(0xFF1D1A3A),
+        heroBottom = Color(0xFF2A2110)
+    ),
+    AppTheme(
+        id = "sakura",
+        nameFa = "ساکورا",
+        accent = Color(0xFFF9A8D4),
+        accent2 = Color(0xFFF472B6),
+        heroTop = Color(0xFF331425),
+        heroBottom = Color(0xFF2B1030)
+    ),
+    AppTheme(
+        id = "graphite",
+        nameFa = "گرافیتی",
+        accent = Color(0xFFE2E8F0),
+        accent2 = Color(0xFF94A3B8),
+        heroTop = Color(0xFF1E293B),
+        heroBottom = Color(0xFF0F172A)
     )
 )
 
