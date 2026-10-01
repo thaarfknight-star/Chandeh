@@ -185,6 +185,17 @@ val AppThemes = listOf(
         background = Color(0xFF0F0A1A),
         surface = Color(0xFF181026),
         surfaceVariant = Color(0xFF241A38)
+    ),
+    AppTheme(
+        id = "coral",
+        nameFa = "مرجان",
+        accent = Color(0xFFFF7B6B),
+        accent2 = Color(0xFFFFB86B),
+        heroTop = Color(0xFF5C1F16),
+        heroBottom = Color(0xFF1A0E0A),
+        background = Color(0xFF140B08),
+        surface = Color(0xFF1E120D),
+        surfaceVariant = Color(0xFF2C1A12)
     )
 )
 

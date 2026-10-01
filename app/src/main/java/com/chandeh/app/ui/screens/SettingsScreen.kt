@@ -9,8 +9,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -152,23 +155,17 @@ fun SettingsScreen(
         }
 
         SettingsSection(title = "تم رنگی", icon = Icons.Filled.Palette) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                allThemes.chunked(3).forEach { row ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        row.forEach { t ->
-                            ThemeCard(
-                                theme = t,
-                                selected = t.id == theme.id,
-                                onClick = { onThemeChange(t) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        // اگر ردیف ناقص بود، فضای خالی را پر کن
-                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-                    }
+            // ردیف افقی اسکرول‌خور تا با زیاد شدن تم‌ها صفحه شلوغ نشود
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(vertical = 4.dp)
+            ) {
+                items(allThemes, key = { it.id }) { t ->
+                    ThemeSwatch(
+                        theme = t,
+                        selected = t.id == theme.id,
+                        onClick = { onThemeChange(t) }
+                    )
                 }
             }
         }
@@ -265,56 +262,49 @@ private fun SettingsSection(
 }
 
 @Composable
-private fun ThemeCard(
+private fun ThemeSwatch(
     theme: AppTheme,
     selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onClick: () -> Unit
 ) {
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(14.dp)
-            )
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.clickable(onClick = onClick)
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(theme.accent, theme.accent2)
-                        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(theme.accent, theme.accent2)
                     )
-            )
+                )
+                .border(
+                    width = if (selected) 3.dp else 1.dp,
+                    color = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = CircleShape
+                )
+        ) {
             if (selected) {
-                Box(
-                    modifier = Modifier
-                        .size(22.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Filled.Check,
-                        contentDescription = null,
-                        tint = theme.accent,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
+                Icon(
+                    Icons.Filled.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.background,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
-        Text(theme.nameFa, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(
+            theme.nameFa,
+            fontSize = 12.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = if (selected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
