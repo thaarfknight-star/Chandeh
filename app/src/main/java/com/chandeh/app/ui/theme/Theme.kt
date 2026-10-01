@@ -174,6 +174,17 @@ val AppThemes = listOf(
         background = Color(0xFF07110D),
         surface = Color(0xFF0D1B14),
         surfaceVariant = Color(0xFF142A1E)
+    ),
+    AppTheme(
+        id = "amethyst",
+        nameFa = "آمیتیست",
+        accent = Color(0xFFA78BFA),
+        accent2 = Color(0xFFF472B6),
+        heroTop = Color(0xFF4C1D95),
+        heroBottom = Color(0xFF1A0B2E),
+        background = Color(0xFF0F0A1A),
+        surface = Color(0xFF181026),
+        surfaceVariant = Color(0xFF241A38)
     )
 )
 
