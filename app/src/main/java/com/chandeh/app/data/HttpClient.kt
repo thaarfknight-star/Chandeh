@@ -65,6 +65,20 @@ object HttpClient {
     }
 
     /**
+     * کلاینت مخصوص دانلود فایل‌های حجیم (APK): بدون سقف زمانیِ «کل تماس».
+     * کلاینت اصلی callTimeout=۲۵ثانیه دارد؛ دانلود ~۲۰ مگابایت روی اینترنت
+     * کند بیشتر از ۲۵ ثانیه طول می‌کشد و تماس نصف‌کاره کشته می‌شد —
+     * علت «دانلود ناموفق بود».
+     */
+    private val downloadClient: OkHttpClient by lazy {
+        client.newBuilder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(10, TimeUnit.MINUTES)
+            .build()
+    }
+
+    /**
      * دانلود فایل روی دیسک با گزارش پیشرفت؛ در صورت خطا استثنا می‌دهد.
      * onProgress یک لنبدای suspend است تا صداکننده بتواند به نخ اصلی سوییچ کند.
      */
@@ -75,7 +89,7 @@ object HttpClient {
         onProgress: suspend (done: Long, total: Long) -> Unit
     ) {
         val req = Request.Builder().url(url).build()
-        client.newCall(req).execute().use { resp ->
+        downloadClient.newCall(req).execute().use { resp ->
             if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for $url")
             val body = resp.body ?: throw IOException("empty body for $url")
             val total = body.contentLength()
