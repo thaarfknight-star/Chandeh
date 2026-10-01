@@ -12,11 +12,27 @@ android {
         applicationId = "com.chandeh.app"
         minSdk = 23
         targetSdk = 34
-        versionCode = 16
-        versionName = "1.1.2"
+        versionCode = 17
+        versionName = "1.1.3"
+    }
+
+    // امضای ثابت برای بیلدهای CI: اگر امضا مشخص نباشد، هر رانر گیت‌هاب
+    // یک دیباگ‌کی‌استور تصادفی می‌سازد و اندروید آپدیت را (به‌خاطر عدم
+    // تطابق امضا) رد می‌کند. این کی‌استور دیباگ است و محرمانه نیست.
+    signingConfigs {
+        create("ciDebug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+            storeType = "PKCS12"
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("ciDebug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
