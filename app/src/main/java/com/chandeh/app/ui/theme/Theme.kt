@@ -30,8 +30,19 @@ data class AppTheme(
     val surfaceVariant: Color
 )
 
-/** سیزده تم ترکیب‌رنگی */
+/** هفده تم ترکیب‌رنگی؛ اولی («نرخ‌چک») تم پیش‌فرض برنامه است */
 val AppThemes = listOf(
+    AppTheme(
+        id = "nerkhcheck",
+        nameFa = "نرخ‌چک",
+        accent = Color(0xFF00E5A0),
+        accent2 = Color(0xFF5B8DEF),
+        heroTop = Color(0xFF0B1F4D),
+        heroBottom = Color(0xFF050B1A),
+        background = Color(0xFF050B18),
+        surface = Color(0xFF0A1428),
+        surfaceVariant = Color(0xFF12203C)
+    ),
     AppTheme(
         id = "aurora",
         nameFa = "شفق قطبی",
